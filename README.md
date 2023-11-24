@@ -13,6 +13,4 @@ To develop for this project there some steps to setup the environment for buildi
 
  - Step 5. Clone the repo `git clone https://github.com/ymich9963/WULPSC`
 
- - Step 6. Open the project folder in VSCode, press `CTRL + SHIFT + P` and type `>Add vscode configuration folder`. This is to add your own paths to the tools to build and flash the project.
-
- - Step 7. Have fun.
+ - Step 6. Have fun.
