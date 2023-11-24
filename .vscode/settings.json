@@ -1,9 +1,0 @@
-{
-    "cmake.configureOnOpen": true,
-    "files.associations": {
-        "freertos.h": "c",
-        "task.h": "c"
-    },
-    "idf.adapterTargetName": "esp32",
-    "C_Cpp.errorSquiggles": "disabled"
-}
