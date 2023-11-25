@@ -1,3 +1,34 @@
+/**
+ * This example takes a picture every 5s and print its size on serial monitor.
+ */
+
+// =============================== SETUP ======================================
+
+// 1. Board setup (Uncomment):
+// #define BOARD_WROVER_KIT
+// #define BOARD_ESP32CAM_AITHINKER
+
+/**
+ * 2. Kconfig setup
+ *
+ * If you have a Kconfig file, copy the content from
+ *  https://github.com/espressif/esp32-camera/blob/master/Kconfig into it.
+ * In case you haven't, copy and paste this Kconfig file inside the src directory.
+ * This Kconfig file has definitions that allows more control over the camera and
+ * how it will be initialized.
+ */
+
+/**
+ * 3. Enable PSRAM on sdkconfig:
+ *
+ * CONFIG_ESP32_SPIRAM_SUPPORT=y
+ *
+ * More info on
+ * https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/kconfig.html#config-esp32-spiram-support
+ */
+
+// ================================ CODE ======================================
+
 #include <esp_log.h>
 #include <esp_system.h>
 #include <nvs_flash.h>
@@ -6,6 +37,11 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+
+// support IDF 5.x
+#ifndef portTICK_RATE_MS
+#define portTICK_RATE_MS portTICK_PERIOD_MS
+#endif
 
 #include "esp_camera.h"
 
@@ -122,7 +158,7 @@ void app_main(void)
         ESP_LOGI(TAG, "Picture taken! Its size was: %zu bytes", pic->len);
         esp_camera_fb_return(pic);
 
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        vTaskDelay(5000 / portTICK_RATE_MS);
     }
 #else
     ESP_LOGE(TAG, "Camera support is not available for this chip");
