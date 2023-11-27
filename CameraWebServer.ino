@@ -1,6 +1,6 @@
 #include "esp_camera.h"
 #include <WiFi.h>
-#define CAMERA_MODEL_AI_THINKER  // Our model
+#define CAMERA_MODEL_AI_THINKER 1  // Our model
 #include "camera_pins.h"
 
 // ===========================
