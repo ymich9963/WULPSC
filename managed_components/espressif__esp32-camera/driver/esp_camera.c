@@ -327,7 +327,7 @@ esp_err_t esp_camera_init(const camera_config_t *config)
         s_state->sensor.set_wpc(&s_state->sensor, true);
         s_state->sensor.set_lenc(&s_state->sensor, true);
     }
-
+    //CHECKOUT!
     if (pix_format == PIXFORMAT_JPEG) {
         s_state->sensor.set_quality(&s_state->sensor, config->jpeg_quality);
     }
@@ -356,7 +356,7 @@ esp_err_t esp_camera_deinit()
     return ret;
 }
 
-#define FB_GET_TIMEOUT (4000 / portTICK_PERIOD_MS)
+#define FB_GET_TIMEOUT (4000 / portTICK_PERIOD_MS) // waits 4 seconds (default) to get the image
 
 camera_fb_t *esp_camera_fb_get()
 {
