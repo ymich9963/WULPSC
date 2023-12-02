@@ -124,6 +124,15 @@ static esp_err_t write_arr(const char *path, camera_fb_t *fb){
     return ESP_OK;
 }
 
+void setup_flash(){
+    gpio_set_pull_mode(CAM_PIN_FLASH,GPIO_PULLDOWN_ONLY);
+    gpio_set_direction(CAM_PIN_FLASH,GPIO_MODE_OUTPUT);
+    gpio_set_level(CAM_PIN_FLASH,1);
+}
+
+void turn_off_flash(){
+    gpio_set_level(CAM_PIN_FLASH,0);
+}
 
 void app_main(void)
 {   
@@ -133,14 +142,23 @@ void app_main(void)
         return;
     }
 
-    gpio_set_direction(CAM_PIN_FLASH,GPIO_MODE_OUTPUT);
-    gpio_set_level(CAM_PIN_FLASH,1);
+    
+    // camera settings
+    //sensor_t *s = esp_camera_sensor_get();
+    // s->set_gain_ctrl(s, 1);                       // auto gain on
+    // s->set_exposure_ctrl(s, 1);                   // auto exposure on
+    // s->set_awb_gain(s, 1);                        // Auto White Balance enable (0 or 1)
+    // s->set_brightness(s, 1);                      // (-2 to 2) - set brightness
+    // s->set_aec2(s,1);                             // auto exposure control on
+    //s->reset(s);
+
+    setup_flash();
 
     ESP_LOGI(TAG, "Taking picture...");
     camera_fb_t *fb = esp_camera_fb_get();
 
-    vTaskDelay(10 / portTICK_PERIOD_MS); //0.5 second delay for WDT and flash
-    gpio_set_level(CAM_PIN_FLASH,0);
+    turn_off_flash();
+    vTaskDelay(10 / portTICK_PERIOD_MS); //10 millisecond delay for WDT and flash
 
     ESP_LOGI(TAG, "-----------------------");
     ESP_LOGI(TAG, "Picture taken!");
@@ -149,16 +167,6 @@ void app_main(void)
     ESP_LOGI(TAG, "Width: %zu", fb->width);
     ESP_LOGI(TAG, "Format: %d", fb->format); // see sensor.h for format
     ESP_LOGI(TAG, "-----------------------"); 
-
-    // camera settings
-    sensor_t *s = esp_camera_sensor_get();
-    s->set_gain_ctrl(s, 1);                       // auto gain on
-    s->set_exposure_ctrl(s, 1);                   // auto exposure on
-    s->set_awb_gain(s, 1);                        // Auto White Balance enable (0 or 1)
-    s->set_brightness(s, 1);                      // (-2 to 2) - set brightness
-    s->set_aec2(s,1);                             // auto exposure control on
-    //s->reset(s);
-
 
     // variable for function returns
     esp_err_t ret;
