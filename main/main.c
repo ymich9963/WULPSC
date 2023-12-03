@@ -125,7 +125,7 @@ static esp_err_t write_arr(const char *path, camera_fb_t *fb){
 }
 
 void setup_flash(){
-    gpio_set_pull_mode(CAM_PIN_FLASH,GPIO_PULLDOWN_ONLY);
+    gpio_set_level(CAM_PIN_FLASH,0);
     gpio_set_direction(CAM_PIN_FLASH,GPIO_MODE_OUTPUT);
     gpio_set_level(CAM_PIN_FLASH,1);
 }
