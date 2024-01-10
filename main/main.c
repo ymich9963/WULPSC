@@ -15,12 +15,26 @@
 #define WIFI_FAIL_BIT      BIT1
 #define DEFAULT_SCAN_LIST_SIZE 5
 
-/* FreeRTOS event group to signal when we are connected*/
-static EventGroupHandle_t s_wifi_event_group;
-
 static const char *SCAN_TAG = "Scan";
 static const char *STA_TAG = "WiFi Station";
 static int s_retry_num = 0;
+
+// FreeRTOS event group to signal when we are connected
+static EventGroupHandle_t s_wifi_event_group;
+static esp_netif_t *sta_netif;
+static wifi_init_config_t cfg;
+
+void wifi_init_general() // general required calls to initialise wifi
+{
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    sta_netif = esp_netif_create_default_wifi_sta();
+    assert(sta_netif);
+    cfg = (wifi_init_config_t) WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_start());
+}
 
 static void print_auth_mode(int authmode)
 {
@@ -85,14 +99,10 @@ static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_
 
 void wifi_init_sta(void)
 {
+    esp_err_t ret;
+
     s_wifi_event_group = xEventGroupCreate();
     
-    // ESP_ERROR_CHECK(esp_netif_init());
-    // ESP_ERROR_CHECK(esp_event_loop_create_default());
-    // esp_netif_create_default_wifi_sta();
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
     esp_event_handler_instance_t instance_any_id;
     esp_event_handler_instance_t instance_got_ip;
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL, &instance_any_id));
@@ -105,11 +115,15 @@ void wifi_init_sta(void)
         },
     };
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
+    // set credentials and try to connect
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
-    ESP_ERROR_CHECK(esp_wifi_start() );
+    ret = esp_wifi_connect();
 
-    ESP_LOGI(STA_TAG, "wifi_init_sta finished.");
+    if(ret != ESP_OK)
+    {
+        ESP_LOGE(STA_TAG, "Error with Wi-Fi connection");
+        return;
+    }
 
     /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
      * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
@@ -123,29 +137,17 @@ void wifi_init_sta(void)
     } else {
         ESP_LOGE(STA_TAG, "UNEXPECTED EVENT");
     }
-
-    // ESP_ERROR_CHECK(esp_wifi_stop());
-    // ESP_ERROR_CHECK(esp_wifi_deinit());
 }
 
-static void wifi_scan(void)
+void wifi_scan(void)
 {
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
-    esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
-    assert(sta_netif);
-
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
-
     uint16_t number = DEFAULT_SCAN_LIST_SIZE;
     wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
     uint16_t ap_count = 0;
     memset(ap_info, 0, sizeof(ap_info));
 
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());
     esp_wifi_scan_start(NULL, true);
+
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
     ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
     ESP_LOGI(SCAN_TAG, "Total APs scanned = %u", ap_count);
@@ -155,9 +157,6 @@ static void wifi_scan(void)
         print_auth_mode(ap_info[i].authmode);
         ESP_LOGI(SCAN_TAG, "Channel \t\t%d\n", ap_info[i].primary);
     }
-    ESP_ERROR_CHECK(esp_wifi_stop());
-    ESP_ERROR_CHECK(esp_wifi_deinit());
-
 }
 
 void app_main(void)
@@ -169,6 +168,7 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
 
+    wifi_init_general();
     wifi_scan();
     // vTaskDelay(10000/portTICK_PERIOD_MS);
     wifi_init_sta();    
