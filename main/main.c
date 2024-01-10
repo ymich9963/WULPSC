@@ -1,258 +1,176 @@
-// from esp32-camera example
-#include <esp_log.h>
-#include <esp_system.h>
-#include <nvs_flash.h>
-#include <sys/param.h>
 #include <string.h>
-
 #include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
+#include "freertos/event_groups.h"
+#include "esp_wifi.h"
+#include "esp_log.h"
+#include "esp_event.h"
+#include "nvs_flash.h"
 
-#include "esp_camera.h"
+// can change from menuconfig
+#define ESP_WIFI_SSID      "villa 4A 2o"
+#define ESP_WIFI_PASS      "pirillou123"
 
-// from SD card example
-#include <string.h>
-#include <sys/unistd.h>
-#include <sys/stat.h>
-#include "esp_vfs_fat.h"
-#include "sdmmc_cmd.h"
+#define ESP_MAXIMUM_RETRY  5
+#define WIFI_CONNECTED_BIT BIT0
+#define WIFI_FAIL_BIT      BIT1
+#define DEFAULT_SCAN_LIST_SIZE 5
 
-#include "esp_http_server.h"
+/* FreeRTOS event group to signal when we are connected*/
+static EventGroupHandle_t s_wifi_event_group;
 
-// Camera definitions for ESP32-CAM
-#define CAM_PIN_PWDN 32
-#define CAM_PIN_RESET -1 //software reset will be performed
-#define CAM_PIN_XCLK 0
-#define CAM_PIN_SIOD 26
-#define CAM_PIN_SIOC 27
-#define CAM_PIN_D7 35
-#define CAM_PIN_D6 34
-#define CAM_PIN_D5 39
-#define CAM_PIN_D4 36
-#define CAM_PIN_D3 21
-#define CAM_PIN_D2 19
-#define CAM_PIN_D1 18
-#define CAM_PIN_D0 5
-#define CAM_PIN_VSYNC 25
-#define CAM_PIN_HREF 23
-#define CAM_PIN_PCLK 22
-#define CAM_PIN_FLASH 4
+static const char *SCAN_TAG = "Scan";
+static const char *STA_TAG = "WiFi Station";
+static int s_retry_num = 0;
 
-// Folder to mount at
-#define MOUNT_POINT "/sdcard"
-
-// SD card pins used in SPI communication
-//based on sdspi example
-#define SD_DATA0 2
-#define SD_DATA3 13
-#define SD_CLK 14
-#define SD_CMD 15
-
-// defined to be used as SPI pins
-#define PIN_NUM_MISO SD_DATA0
-#define PIN_NUM_CS SD_DATA3
-#define PIN_NUM_CLK SD_CLK
-#define PIN_NUM_MOSI SD_CMD 
-
-static const char *TAG = "WULPSC";
-
-// declare the camera configuration
-static camera_config_t camera_config = {
-    .pin_pwdn = CAM_PIN_PWDN,
-    .pin_reset = CAM_PIN_RESET,
-    .pin_xclk = CAM_PIN_XCLK,
-    .pin_sccb_sda = CAM_PIN_SIOD,
-    .pin_sccb_scl = CAM_PIN_SIOC,
-
-    .pin_d7 = CAM_PIN_D7,
-    .pin_d6 = CAM_PIN_D6,
-    .pin_d5 = CAM_PIN_D5,
-    .pin_d4 = CAM_PIN_D4,
-    .pin_d3 = CAM_PIN_D3,
-    .pin_d2 = CAM_PIN_D2,
-    .pin_d1 = CAM_PIN_D1,
-    .pin_d0 = CAM_PIN_D0,
-    .pin_vsync = CAM_PIN_VSYNC,
-    .pin_href = CAM_PIN_HREF,
-    .pin_pclk = CAM_PIN_PCLK,
-
-    //XCLK 20MHz or 10MHz for OV2640 double FPS (Experimental)
-    .xclk_freq_hz = 20000000,
-    .ledc_timer = LEDC_TIMER_0,
-    .ledc_channel = LEDC_CHANNEL_0,
-
-    .pixel_format = PIXFORMAT_JPEG, //YUV422,GRAYSCALE,RGB565,JPEG
-    .frame_size = FRAMESIZE_VGA,    //QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The performance of the ESP32-S series has improved a lot, but JPEG mode always gives better frame rates.
-
-    .jpeg_quality = 2, //0-63, for OV series camera sensors, lower number means higher quality
-    .fb_count = 1,       //When jpeg mode is used, if fb_count more than one, the driver will work in continuous mode.
-    .grab_mode = CAMERA_GRAB_WHEN_EMPTY,
-    .fb_location = CAMERA_FB_IN_DRAM,
-};
-
-static esp_err_t init_camera(void)
+static void print_auth_mode(int authmode)
 {
-    //initialize the camera
-    esp_err_t err = esp_camera_init(&camera_config);
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Camera Init Failed");
-        return err;
+    switch (authmode) {
+    case WIFI_AUTH_OPEN:
+        ESP_LOGI(SCAN_TAG, "Authmode \tWIFI_AUTH_OPEN");
+        break;
+    case WIFI_AUTH_OWE:
+        ESP_LOGI(SCAN_TAG, "Authmode \tWIFI_AUTH_OWE");
+        break;
+    case WIFI_AUTH_WEP:
+        ESP_LOGI(SCAN_TAG, "Authmode \tWIFI_AUTH_WEP");
+        break;
+    case WIFI_AUTH_WPA_PSK:
+        ESP_LOGI(SCAN_TAG, "Authmode \tWIFI_AUTH_WPA_PSK");
+        break;
+    case WIFI_AUTH_WPA2_PSK:
+        ESP_LOGI(SCAN_TAG, "Authmode \tWIFI_AUTH_WPA2_PSK");
+        break;
+    case WIFI_AUTH_WPA_WPA2_PSK:
+        ESP_LOGI(SCAN_TAG, "Authmode \tWIFI_AUTH_WPA_WPA2_PSK");
+        break;
+    case WIFI_AUTH_ENTERPRISE:
+        ESP_LOGI(SCAN_TAG, "Authmode \tWIFI_AUTH_ENTERPRISE");
+        break;
+    case WIFI_AUTH_WPA3_PSK:
+        ESP_LOGI(SCAN_TAG, "Authmode \tWIFI_AUTH_WPA3_PSK");
+        break;
+    case WIFI_AUTH_WPA2_WPA3_PSK:
+        ESP_LOGI(SCAN_TAG, "Authmode \tWIFI_AUTH_WPA2_WPA3_PSK");
+        break;
+    case WIFI_AUTH_WPA3_ENT_192:
+        ESP_LOGI(SCAN_TAG, "Authmode \tWIFI_AUTH_WPA3_ENT_192");
+        break;
+    default:
+        ESP_LOGI(SCAN_TAG, "Authmode \tWIFI_AUTH_UNKNOWN");
+        break;
     }
-
-    return ESP_OK;
 }
 
-static esp_err_t init_sd(void){
+// used to set the CONNECTED or FAIL bits
+static void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
+{
+    if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
+        esp_wifi_connect();
+    } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
+        if (s_retry_num < ESP_MAXIMUM_RETRY) {
+            esp_wifi_connect();
+            s_retry_num++;
+            ESP_LOGI(STA_TAG, "retry to connect to the AP");
+        } else {
+            xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
+        }
+        ESP_LOGI(STA_TAG,"connect to the AP fail");
+    } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
+        ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
+        ESP_LOGI(STA_TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
+        s_retry_num = 0;
+        xEventGroupSetBits(s_wifi_event_group, WIFI_CONNECTED_BIT);
+    }
+}
+
+void wifi_init_sta(void)
+{
+    s_wifi_event_group = xEventGroupCreate();
     
-    return ESP_OK;
-}
+    // ESP_ERROR_CHECK(esp_netif_init());
+    // ESP_ERROR_CHECK(esp_event_loop_create_default());
+    // esp_netif_create_default_wifi_sta();
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
-static esp_err_t write_arr(const char *path, camera_fb_t *fb){
-    size_t ret;
-    ESP_LOGI(TAG, "Opening file %s", path);
-    FILE *f = fopen(path, "wb");
-    if (f == NULL) {
-        ESP_LOGE(TAG, "Failed to open file for writing");
-        return ESP_FAIL;
+    esp_event_handler_instance_t instance_any_id;
+    esp_event_handler_instance_t instance_got_ip;
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL, &instance_any_id));
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL, &instance_got_ip));
+
+    wifi_config_t wifi_config = {
+        .sta = {
+            .ssid = ESP_WIFI_SSID,
+            .password = ESP_WIFI_PASS,
+        },
+    };
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
+    ESP_ERROR_CHECK(esp_wifi_start() );
+
+    ESP_LOGI(STA_TAG, "wifi_init_sta finished.");
+
+    /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
+     * number of re-tries (WIFI_FAIL_BIT). The bits are set by event_handler() (see above) */
+    EventBits_t bits = xEventGroupWaitBits(s_wifi_event_group, WIFI_CONNECTED_BIT | WIFI_FAIL_BIT, pdFALSE, pdFALSE, portMAX_DELAY);
+
+    /* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually happened. */
+    if (bits & WIFI_CONNECTED_BIT) {
+        ESP_LOGI(STA_TAG, "connected to Access Point SSID:%s password:%s", ESP_WIFI_SSID, ESP_WIFI_PASS);
+    } else if (bits & WIFI_FAIL_BIT) {
+        ESP_LOGI(STA_TAG, "Failed to connect to SSID:%s, password:%s", ESP_WIFI_SSID, ESP_WIFI_PASS);
+    } else {
+        ESP_LOGE(STA_TAG, "UNEXPECTED EVENT");
     }
-    ret = fwrite(fb->buf, sizeof(char), fb->len, f);
-    ESP_LOGI(TAG,"wrote %zu elements out of %d requested", ret, fb->len);
-    fclose(f);
-    ESP_LOGI(TAG, "File written");
 
-    return ESP_OK;
+    // ESP_ERROR_CHECK(esp_wifi_stop());
+    // ESP_ERROR_CHECK(esp_wifi_deinit());
 }
 
+static void wifi_scan(void)
+{
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
+    esp_netif_t *sta_netif = esp_netif_create_default_wifi_sta();
+    assert(sta_netif);
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    uint16_t number = DEFAULT_SCAN_LIST_SIZE;
+    wifi_ap_record_t ap_info[DEFAULT_SCAN_LIST_SIZE];
+    uint16_t ap_count = 0;
+    memset(ap_info, 0, sizeof(ap_info));
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_start());
+    esp_wifi_scan_start(NULL, true);
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&number, ap_info));
+    ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&ap_count));
+    ESP_LOGI(SCAN_TAG, "Total APs scanned = %u", ap_count);
+    for (int i = 0; (i < DEFAULT_SCAN_LIST_SIZE) && (i < ap_count); i++) {
+        ESP_LOGI(SCAN_TAG, "SSID \t\t%s", ap_info[i].ssid);
+        ESP_LOGI(SCAN_TAG, "RSSI \t\t%d", ap_info[i].rssi);
+        print_auth_mode(ap_info[i].authmode);
+        ESP_LOGI(SCAN_TAG, "Channel \t\t%d\n", ap_info[i].primary);
+    }
+    ESP_ERROR_CHECK(esp_wifi_stop());
+    ESP_ERROR_CHECK(esp_wifi_deinit());
+
+}
 
 void app_main(void)
-{   
-    
-    // if camera is not initialised, return
-    if(ESP_OK != init_camera()) {
-        return;
+{
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
     }
+    ESP_ERROR_CHECK(ret);
 
-    gpio_set_direction(CAM_PIN_FLASH,GPIO_MODE_OUTPUT);
-    gpio_set_level(CAM_PIN_FLASH,1);
+    wifi_scan();
+    // vTaskDelay(10000/portTICK_PERIOD_MS);
+    wifi_init_sta();    
 
-    ESP_LOGI(TAG, "Taking picture...");
-    camera_fb_t *fb = esp_camera_fb_get();
-
-    vTaskDelay(10 / portTICK_PERIOD_MS); //0.5 second delay for WDT and flash
-    gpio_set_level(CAM_PIN_FLASH,0);
-
-    ESP_LOGI(TAG, "-----------------------");
-    ESP_LOGI(TAG, "Picture taken!");
-    ESP_LOGI(TAG, "Size: %zu bytes", fb->len);
-    ESP_LOGI(TAG, "Height: %zu", fb->height);
-    ESP_LOGI(TAG, "Width: %zu", fb->width);
-    ESP_LOGI(TAG, "Format: %d", fb->format); // see sensor.h for format
-    ESP_LOGI(TAG, "-----------------------"); 
-
-    // camera settings
-    sensor_t *s = esp_camera_sensor_get();
-    s->set_gain_ctrl(s, 1);                       // auto gain on
-    s->set_exposure_ctrl(s, 1);                   // auto exposure on
-    s->set_awb_gain(s, 1);                        // Auto White Balance enable (0 or 1)
-    s->set_brightness(s, 1);                      // (-2 to 2) - set brightness
-    s->set_aec2(s,1);                             // auto exposure control on
-    //s->reset(s);
-
-
-    // variable for function returns
-    esp_err_t ret;
-
-    // initialise sd card
-    esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-        .format_if_mount_failed = true,
-        .max_files = 5,
-        .allocation_unit_size = 16 * 1024
-    };
-
-    sdmmc_card_t *card;
-    const char mount_point[] = MOUNT_POINT;
-    ESP_LOGI(TAG, "Initializing SD card");
-
-    // Use settings defined above to initialize SD card and mount FAT filesystem.
-    // Note: esp_vfs_fat_sdmmc/sdspi_mount is all-in-one convenience functions.
-    // Please check its source code and implement error recovery when developing
-    // production applications.
-    ESP_LOGI(TAG, "Using SPI peripheral");
-
-    // Default structure initializer for SD over SPI driver
-    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
-
-    // initialise spi bus config
-    spi_bus_config_t bus_cfg = {
-        .mosi_io_num = PIN_NUM_MOSI,
-        .miso_io_num = PIN_NUM_MISO,
-        .sclk_io_num = PIN_NUM_CLK,
-        .quadwp_io_num = -1, // change these for more data pins?
-        .quadhd_io_num = -1,
-        .max_transfer_sz = 4092,
-    };
-
-    // initialise and check if succesful
-    ret = spi_bus_initialize(host.slot, &bus_cfg, SDSPI_DEFAULT_DMA);
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to initialize bus.");
-        return;
-    }
-
-    // initializes the slot without card detect (CD) and write protect (WP) signals...what does that mean?
-    sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT(); // uses GPIO13 for CS, how does it know?
-    slot_config.gpio_cs = PIN_NUM_CS;
-    slot_config.host_id = host.slot;
-
-    ESP_LOGI(TAG, "Mounting filesystem");
-    ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &card);
-
-    if (ret != ESP_OK) {
-        if (ret == ESP_FAIL) {
-            ESP_LOGE(TAG, "Failed to mount filesystem. "
-                     "If you want the card to be formatted, set the CONFIG_EXAMPLE_FORMAT_IF_MOUNT_FAILED menuconfig option.");
-        } else {
-            ESP_LOGE(TAG, "Failed to initialize the card (%s). "
-                     "Make sure SD card lines have pull-up resistors in place.", esp_err_to_name(ret));
-        }
-        return;
-    }
-    ESP_LOGI(TAG, "Filesystem mounted");
-
-    // Card has been initialized, print its properties
-    sdmmc_card_print_info(stdout, card);
-
-    // Use POSIX and C standard library functions to work with files.
-
-    //inspect the first 6 values of buf
-    ESP_LOGI(TAG,"Buffer header details: %d ,%d, %d, %d ", fb->buf[0], fb->buf[1], fb->buf[2], fb->buf[3]);
-
-    // First create a file.
-    const char *file = MOUNT_POINT"/img.jpg";
-    ESP_LOGI(TAG,"File created");
-
-
-    ret = write_arr(file, fb);
-
-
-    // error check if file was not written correctly
-    if (ret != ESP_OK) {
-        return;
-    }
-
-    // All done, unmount partition and disable SPI peripheral
-    esp_vfs_fat_sdcard_unmount(mount_point, card);
-    ESP_LOGI(TAG, "Card unmounted");
-
-    // return frame buffer
-    esp_camera_fb_return(fb);
-    ESP_LOGI(TAG, "Frame buffer returned");
-
-
-    //deinitialize the bus after all devices are removed
-    spi_bus_free(host.slot);
-
-    ESP_LOGI(TAG,"DONE!!!!!!!!!!!");
-    return;
 }
