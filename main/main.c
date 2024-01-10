@@ -3,6 +3,7 @@
 
 #include "camera.h"
 #include "sd.h"
+#include "wifi.h"
 
 static const char *TAG = "WULPSC";
 
@@ -14,7 +15,8 @@ void app_main(void)
 
     ret = init_camera();
 
-    if(ret != ESP_OK) { // if camera is not initialised, return
+    if(ret != ESP_OK) // if camera is not initialised, return 
+    { 
         return;
     }
     
@@ -40,13 +42,32 @@ void app_main(void)
 
     ret = sd_init(fb);
 
-    if(ret != ESP_OK) {
+    if(ret != ESP_OK) 
+    {
         return;
     }
 
     // return frame buffer
     esp_camera_fb_return(fb);
     ESP_LOGI(TAG, "Frame buffer returned");
+
+    // Wi-Fi stuff
+    ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) 
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+
+    if(ret != ESP_OK) 
+    {
+        return;
+    }
+
+    wifi_init_general();
+    wifi_scan();
+    // vTaskDelay(10000/portTICK_PERIOD_MS);
+    wifi_init_sta();    
 
     ESP_LOGI(TAG,"DONE!!!!!!!!!!!");
     return;
