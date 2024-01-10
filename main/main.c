@@ -7,8 +7,8 @@
 #include "nvs_flash.h"
 
 // can change from menuconfig
-#define ESP_WIFI_SSID      "villa 4A 2o"
-#define ESP_WIFI_PASS      "pirillou123"
+#define ESP_WIFI_SSID      "SSID"
+#define ESP_WIFI_PASS      "PASSWORD"
 
 #define ESP_MAXIMUM_RETRY  5
 #define WIFI_CONNECTED_BIT BIT0
