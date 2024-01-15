@@ -1,57 +1,136 @@
 #include <esp_log.h>
 #include <string.h>
-
+#include <nvs_flash.h>
 #include "camera.h"
-#include "sd.h"
 #include "wifi.h"
+#include "esp_http_server.h"
+#include "esp_timer.h"
 
-static const char *TAG = "WULPSC";
+#define LOOP_DELAY_MS 10    // delay between each loop in ms
+#define CAPTURE_IMAGE 1     // capture an image to send over http. if 0 it simply sends the string in get_handler()
+
+static const char *TAG = "WULPSC - http test";
+
+typedef struct {
+        httpd_req_t *req;
+        size_t len;
+} jpg_chunking_t;
+
+static size_t jpg_encode_stream(void * arg, size_t index, const void* data, size_t len){
+    jpg_chunking_t *j = (jpg_chunking_t *)arg;
+    if(!index){
+        j->len = 0;
+    }
+    if(httpd_resp_send_chunk(j->req, (const char *)data, len) != ESP_OK){
+        return 0;
+    }
+    j->len += len;
+    return len;
+}
+
+esp_err_t jpg_httpd_handler(httpd_req_t *req){
+    camera_fb_t * fb = NULL;
+    esp_err_t res = ESP_OK;
+    size_t fb_len = 0;
+    int64_t fr_start = esp_timer_get_time();
+
+    fb = esp_camera_fb_get(); // gets a picture
+    if (!fb) {
+        ESP_LOGE(TAG, "Camera capture failed");
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+    res = httpd_resp_set_type(req, "image/jpeg");
+    if(res == ESP_OK){
+        res = httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
+    }
+
+    if(res == ESP_OK){
+        if(fb->format == PIXFORMAT_JPEG){
+            fb_len = fb->len;
+            res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
+        } else {
+            jpg_chunking_t jchunk = {req, 0};
+            res = frame2jpg_cb(fb, 80, jpg_encode_stream, &jchunk)?ESP_OK:ESP_FAIL;
+            httpd_resp_send_chunk(req, NULL, 0);
+            fb_len = jchunk.len;
+        }
+    }
+    esp_camera_fb_return(fb);
+    int64_t fr_end = esp_timer_get_time();
+    ESP_LOGI(TAG, "JPG: %luKB %lums", (uint32_t)(fb_len/1024), (uint32_t)((fr_end - fr_start)/1000));
+    return res;
+}
+
+// Our URI handler function to be called during GET /uri request  
+esp_err_t get_handler(httpd_req_t *req)
+{
+    // Send a simple response 
+    const char resp[] = "URI GET Response";
+    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
+#if CAPTURE_IMAGE == 0
+// URI handler structure for GET /uri  and /jpeg
+    httpd_uri_t uri_get = {
+        .uri      = "/uri",
+        .method   = HTTP_GET,
+        .handler  = get_handler,
+        .user_ctx = NULL
+    };
+#else
+    httpd_uri_t jpg_get = {
+        .uri      = "/jpg",
+        .method   = HTTP_GET,
+        .handler  = jpg_httpd_handler,
+        .user_ctx = NULL
+    };
+#endif
+
+// Function for starting the webserver  
+httpd_handle_t start_webserver(void)
+{
+    // Generate default configuration
+    httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+
+    // Empty handle to esp_http_server
+    httpd_handle_t server = NULL;
+
+    // Start the httpd server
+    if (httpd_start(&server, &config) == ESP_OK) {
+        // Register URI handlers
+        // httpd_register_uri_handler(server, &uri_post);
+
+#if CAPTURE_IMAGE == 0
+    httpd_register_uri_handler(server, &uri_get);
+#else
+    httpd_register_uri_handler(server, &jpg_get);
+#endif
+
+    }
+    // If server failed to start, handle will be NULL
+    return server;
+}
+
+// Function for stopping the webserver
+void stop_webserver(httpd_handle_t server)
+{
+    if (server) {
+        // Stop the httpd server
+        httpd_stop(server);
+    }
+}
 
 void app_main(void)
 {   
-    esp_err_t ret; // variable for function returns
+    // Variable for function returns
+    esp_err_t ret;
 
-    setup_flash();
+    httpd_handle_t server;
 
-    ret = init_camera();
-
-    if(ret != ESP_OK) // if camera is not initialised, return 
-    { 
-        return;
-    }
-    
-    // camera settings
-    sensor_t *s = esp_camera_sensor_get();
-    // s->set_gain_ctrl(s, 1);                       // auto gain on
-    // s->set_exposure_ctrl(s, 1);                   // auto exposure on
-    // s->set_awb_gain(s, 1);                        // Auto White Balance enable (0 or 1)
-    // s->set_brightness(s, 1);                      // (-2 to 2) - set brightness
-    // s->set_aec2(s,1);                             // auto exposure control on
-    // s->set_exposure_ctrl(s,0);
-    // s->set_aec2(s,0);
-    // s->set_aec_value(s,1000);
-    //s->reset(s);    
-
-    ESP_LOGI(TAG, "Taking picture...");
-    camera_fb_t *fb = esp_camera_fb_get();
-
-    turn_on_flash();
-    vTaskDelay(10 / portTICK_PERIOD_MS); //10 millisecond delay for WDT and flash
-    turn_off_flash();
-    pic_data_output(fb);
-
-    ret = sd_init(fb);
-
-    if(ret != ESP_OK) 
-    {
-        return;
-    }
-
-    // return frame buffer
-    esp_camera_fb_return(fb);
-    ESP_LOGI(TAG, "Frame buffer returned");
-
-    // Wi-Fi stuff
+    //// Wi-Fi stuff
+    //initialise the non volatile storage
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) 
     {
@@ -66,8 +145,29 @@ void app_main(void)
 
     wifi_init_general();
     wifi_scan();
-    // vTaskDelay(10000/portTICK_PERIOD_MS);
-    wifi_init_sta();    
+    wifi_init_sta();
+
+    server = start_webserver();
+
+    if(server == NULL)
+    {
+        ESP_LOGE(TAG,"Error Server is NULL");
+        return;
+    }
+
+#if CAPTURE_IMAGE == 1
+    ret = init_camera();
+    if(ret != ESP_OK) // if camera is not initialised, return 
+    { 
+        return;
+    }
+#endif
+
+    while(server)
+    {
+        vTaskDelay(LOOP_DELAY_MS/portTICK_PERIOD_MS);
+        ESP_LOGI(TAG,"In the loop");
+    }
 
     ESP_LOGI(TAG,"DONE!!!!!!!!!!!");
     return;

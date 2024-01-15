@@ -2,8 +2,8 @@
 #define WIFI_H
 
 // can change from menuconfig
-#define ESP_WIFI_SSID      "EE-Hub-c5Jc"
-#define ESP_WIFI_PASS      "clock-lob-CLAD"
+#define ESP_WIFI_SSID      "SSID"
+#define ESP_WIFI_PASS      "PASSWORD"
 
 #define ESP_MAXIMUM_RETRY  5
 #define WIFI_CONNECTED_BIT BIT0
