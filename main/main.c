@@ -6,8 +6,7 @@
 #include "esp_http_server.h"
 #include "esp_timer.h"
 
-#define LOOP_DELAY_MS 10    // delay between each loop in ms
-#define CAPTURE_IMAGE 1     // capture an image to send over http. if 0 it simply sends the string in get_handler()
+#define LOOP_DELAY_MS 5000    // delay between each loop in ms
 
 static const char *TAG = "WULPSC - http test";
 
@@ -43,12 +42,13 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
     res = httpd_resp_set_type(req, "image/jpeg");
     if(res == ESP_OK){
         res = httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
+        ESP_LOGI(TAG, "Set header");
     }
-
     if(res == ESP_OK){
         if(fb->format == PIXFORMAT_JPEG){
             fb_len = fb->len;
             res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
+            ESP_LOGI(TAG, "Response Send");
         } else {
             jpg_chunking_t jchunk = {req, 0};
             res = frame2jpg_cb(fb, 80, jpg_encode_stream, &jchunk)?ESP_OK:ESP_FAIL;
@@ -71,22 +71,20 @@ esp_err_t get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-#if CAPTURE_IMAGE == 0
 // URI handler structure for GET /uri  and /jpeg
-    httpd_uri_t uri_get = {
-        .uri      = "/uri",
-        .method   = HTTP_GET,
-        .handler  = get_handler,
-        .user_ctx = NULL
-    };
-#else
-    httpd_uri_t jpg_get = {
-        .uri      = "/jpg",
-        .method   = HTTP_GET,
-        .handler  = jpg_httpd_handler,
-        .user_ctx = NULL
-    };
-#endif
+httpd_uri_t uri_get = {
+    .uri      = "/uri",
+    .method   = HTTP_GET,
+    .handler  = get_handler,
+    .user_ctx = NULL
+};
+
+httpd_uri_t jpg_get = {
+    .uri      = "/jpg",
+    .method   = HTTP_GET,
+    .handler  = jpg_httpd_handler,
+    .user_ctx = NULL
+};
 
 // Function for starting the webserver  
 httpd_handle_t start_webserver(void)
@@ -98,15 +96,13 @@ httpd_handle_t start_webserver(void)
     httpd_handle_t server = NULL;
 
     // Start the httpd server
-    if (httpd_start(&server, &config) == ESP_OK) {
+    if (httpd_start(&server, &config) == ESP_OK) 
+    {
         // Register URI handlers
         // httpd_register_uri_handler(server, &uri_post);
 
-#if CAPTURE_IMAGE == 0
-    httpd_register_uri_handler(server, &uri_get);
-#else
-    httpd_register_uri_handler(server, &jpg_get);
-#endif
+        httpd_register_uri_handler(server, &uri_get);
+        httpd_register_uri_handler(server, &jpg_get);
 
     }
     // If server failed to start, handle will be NULL
@@ -155,13 +151,11 @@ void app_main(void)
         return;
     }
 
-#if CAPTURE_IMAGE == 1
     ret = init_camera();
     if(ret != ESP_OK) // if camera is not initialised, return 
     { 
         return;
     }
-#endif
 
     while(server)
     {
