@@ -15,6 +15,8 @@ typedef struct {
         size_t len;
 } jpg_chunking_t;
 
+
+
 static size_t jpg_encode_stream(void * arg, size_t index, const void* data, size_t len){
     jpg_chunking_t *j = (jpg_chunking_t *)arg;
     if(!index){
@@ -39,6 +41,7 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
+    ESP_LOGI(TAG,"Picture taken. Trying to send now.");
     res = httpd_resp_set_type(req, "image/jpeg");
     if(res == ESP_OK){
         res = httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
@@ -65,6 +68,8 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
 // Our URI handler function to be called during GET /uri request  
 esp_err_t get_handler(httpd_req_t *req)
 {
+    ESP_LOGI(TAG, "Entered get handler");
+
     // Send a simple response 
     const char resp[] = "URI GET Response";
     httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
@@ -91,6 +96,7 @@ httpd_handle_t start_webserver(void)
 {
     // Generate default configuration
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+    // config.max_open_sockets = 1;
 
     // Empty handle to esp_http_server
     httpd_handle_t server = NULL;
@@ -160,7 +166,7 @@ void app_main(void)
     while(server)
     {
         vTaskDelay(LOOP_DELAY_MS/portTICK_PERIOD_MS);
-        ESP_LOGI(TAG,"In the loop");
+        //ESP_LOGI(TAG,"In the loop");
     }
 
     ESP_LOGI(TAG,"DONE!!!!!!!!!!!");
