@@ -51,12 +51,13 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
         if(fb->format == PIXFORMAT_JPEG){
             fb_len = fb->len;
             res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
-            ESP_LOGI(TAG, "Response Send");
+            ESP_LOGI(TAG, "Response Sent");
         } else {
             jpg_chunking_t jchunk = {req, 0};
             res = frame2jpg_cb(fb, 80, jpg_encode_stream, &jchunk)?ESP_OK:ESP_FAIL;
             httpd_resp_send_chunk(req, NULL, 0);
             fb_len = jchunk.len;
+            ESP_LOGI(TAG, "Response Sent in chunks");
         }
     }
     esp_camera_fb_return(fb);
@@ -96,7 +97,7 @@ httpd_handle_t start_webserver(void)
 {
     // Generate default configuration
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-    // config.max_open_sockets = 1;
+    config.server_port = 19520;
 
     // Empty handle to esp_http_server
     httpd_handle_t server = NULL;
