@@ -103,11 +103,6 @@ static esp_err_t init_camera(void)
     return ESP_OK;
 }
 
-static esp_err_t init_sd(void){
-    
-    return ESP_OK;
-}
-
 static esp_err_t write_arr(const char *path, camera_fb_t *fb){
     size_t ret;
     ESP_LOGI(TAG, "Opening file %s", path);
