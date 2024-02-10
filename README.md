@@ -5,4 +5,4 @@ To individually test the http protocol of the system, please use this branch whi
 To setup environment for this, please look at the main branch.
 
 ## Observations
-It is very sensitive to network and if connection is unstable it won't work. It requires an access point with port forwarding port 19520 and connecting to it via the open IP address.
+It is very sensitive to network and if connection is unstable it won't work. It requires an access point with port forwarding port 19520 and connecting to it via the open IP address. Can't really handle the JPEG getting sent at once therefore chunking was used.

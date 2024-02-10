@@ -47,6 +47,8 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
         res = httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
         ESP_LOGI(TAG, "Set header");
     }
+
+    // TODO: make chunking availiable without it being in a non-JPEG format
     if(res == ESP_OK){
         if(fb->format == PIXFORMAT_JPEG){
             fb_len = fb->len;
@@ -77,6 +79,61 @@ esp_err_t get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+int MIN(int a, int b){
+    if(a < b){
+        return a;
+    } else {
+        return b;
+    }
+}
+
+// Our URI handler function to be called during POST /uri request
+esp_err_t post_handler(httpd_req_t *req)
+{
+    /* Destination buffer for content of HTTP POST request.
+     * httpd_req_recv() accepts char* only, but content could
+     * as well be any binary data (needs type casting).
+     * In case of string data, null termination will be absent, and
+     * content length would give length of string */
+    char content[100];
+
+    // Truncate if content length larger than the buffer
+    size_t recv_size = MIN(req->content_len, sizeof(content));
+
+    int ret = httpd_req_recv(req, content, recv_size);
+    if (ret <= 0) {  // 0 return value indicates connection closed 
+        // Check if timeout occurred
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+            /* In case of timeout one can choose to retry calling
+             * httpd_req_recv(), but to keep it simple, here we
+             * respond with an HTTP 408 (Request Timeout) error */
+            httpd_resp_send_408(req);
+        }
+        /* In case of error, returning ESP_FAIL will
+         * ensure that the underlying socket is closed */
+        return ESP_FAIL;
+    }
+    // Spliting paramters recieved
+
+    char * token = strtok(content, ","); // split string with ,
+    int i = 0;
+    long param[] = {0, 0, 0};
+    while( token != NULL ) {
+      param[i] = strtol(token, NULL, 10); // convert to long?
+      token = strtok(NULL, ",");
+      i++;
+    }
+    ESP_LOGI(TAG, "Saturation %ld", param[0] );
+    ESP_LOGI(TAG, "Contrast %ld", param[1] );
+    ESP_LOGI(TAG, "Brightness %ld", param[2] );
+    // Send a simple response
+    const char resp[] = "URI POST Response";
+    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+
+    // curl -ContentType 'text/plain' -Body '0,2,1' -Method Post http://95.147.177.160:19520/post
+}
+
 // URI handler structure for GET /uri  and /jpeg
 httpd_uri_t uri_get = {
     .uri      = "/uri",
@@ -89,6 +146,14 @@ httpd_uri_t jpg_get = {
     .uri      = "/jpg",
     .method   = HTTP_GET,
     .handler  = jpg_httpd_handler,
+    .user_ctx = NULL
+};
+
+// URI handler structure for POST /post
+httpd_uri_t uri_post = {
+    .uri      = "/post",
+    .method   = HTTP_POST,
+    .handler  = post_handler,
     .user_ctx = NULL
 };
 
@@ -110,6 +175,7 @@ httpd_handle_t start_webserver(void)
 
         httpd_register_uri_handler(server, &uri_get);
         httpd_register_uri_handler(server, &jpg_get);
+        httpd_register_uri_handler(server, &uri_post);
 
     }
     // If server failed to start, handle will be NULL

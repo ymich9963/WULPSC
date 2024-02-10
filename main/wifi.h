@@ -7,10 +7,10 @@
 // #define ESP_WIFI_SSID      "plus"
 // #define ESP_WIFI_PASS      "abcde123"
 
-#define ESP_MAXIMUM_RETRY  5
-#define WIFI_CONNECTED_BIT BIT0
-#define WIFI_FAIL_BIT      BIT1
-#define DEFAULT_SCAN_LIST_SIZE 5
+#define ESP_MAXIMUM_RETRY       5
+#define WIFI_CONNECTED_BIT      BIT0
+#define WIFI_FAIL_BIT           BIT1
+#define DEFAULT_SCAN_LIST_SIZE  5
 
 
 
