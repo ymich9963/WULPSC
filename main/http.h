@@ -6,7 +6,6 @@
 #include "esp_log.h"
 #include "config.h"
 #include "camera.h"
-#include "sd.h"
 
 
 static size_t jpg_encode_stream(void * arg, size_t index, const void* data, size_t len);

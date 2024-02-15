@@ -5,7 +5,7 @@
 
 // Camera definitions for ESP32-CAM
 #define CAM_PIN_PWDN 32
-#define CAM_PIN_RESET -1 //software reset will be performed
+#define CAM_PIN_RESET -1 // software reset will be performed
 #define CAM_PIN_XCLK 0
 #define CAM_PIN_SIOD 26
 #define CAM_PIN_SIOC 27
@@ -26,13 +26,13 @@
 #include "esp_log.h"
 
 
-void setup_flash();
+esp_err_t setup_flash();
 
 
-void turn_on_flash();
+esp_err_t turn_on_flash();
 
 
-void turn_off_flash();
+esp_err_t turn_off_flash();
 
 
 void pic_data_output(camera_fb_t *fb);
@@ -40,5 +40,7 @@ void pic_data_output(camera_fb_t *fb);
 
 esp_err_t init_camera();
 
+
+esp_err_t camera_settings(int enable);
 
 #endif
