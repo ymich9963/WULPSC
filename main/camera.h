@@ -24,7 +24,7 @@
 
 #include "esp_camera.h"
 #include "esp_log.h"
-
+#include "http.h"
 
 esp_err_t setup_flash();
 
@@ -42,5 +42,10 @@ esp_err_t init_camera();
 
 
 esp_err_t camera_settings(int enable);
+
+
+
+esp_err_t camera_switch(bool cam_switched);
+
 
 #endif

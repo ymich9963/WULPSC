@@ -1,5 +1,5 @@
 # WiFi Ultra-Low Power Stereo Camera (WULPSC) - Stereo Camera Test
-This branch is used to test the stereo functionality of the cameras. 
+This branch is used to test the stereo functionality of the cameras. It uses two HTTP GET requests to take both pictures. One request takes a picture from camera 1, sends it, and switches to camera2. The second handler polls for the picture for camera 1 to be sent and then takes a picture to send over.
 
 ## Setup Environment
 To setup environment for this, please look at the main branch.

@@ -4,7 +4,6 @@
 #include "esp_http_server.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "config.h"
 #include "camera.h"
 
 

@@ -6,8 +6,10 @@
 #include "esp_timer.h"
 #include "http.h"
 
-static const char *TAG = "WULPSC - stereo test";
-
+static const char *TAG = "WULPSC - Stereo Test";
+camera_fb_t * fb = NULL;
+bool pic = false;
+bool cam_switched = false;
 
 void app_main(void)
 {   
@@ -47,6 +49,11 @@ void app_main(void)
     { 
         return;
     }
+
+    ESP_LOGI(TAG, "Taking picture...");
+    fb = esp_camera_fb_get();
+    pic_data_output(fb);
+    vTaskDelay(10 / portTICK_PERIOD_MS); // 10 ms delay for WDT and flash
 
     while(server)
     {
