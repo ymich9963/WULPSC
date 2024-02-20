@@ -5,6 +5,7 @@
 #include "wifi.h"
 #include "esp_http_server.h"
 #include "esp_timer.h"
+#include "cJSON.h"
 
 #define LOOP_DELAY_MS 5000    // delay between each loop in ms
 
@@ -134,6 +135,67 @@ esp_err_t post_handler(httpd_req_t *req)
     // curl -ContentType 'text/plain' -Body '0,2,1' -Method Post http://95.147.177.160:19520/post
 }
 
+esp_err_t config_settings_post_handler(httpd_req_t *req)
+{
+
+    /* Buffer for recieving content/params, content is expected to be a JSON string
+    * such as {saturation: 2, contrast: 0, brightness: 1, ...} */
+    int MAX = 511;
+    char *content;
+
+    /* Make sure bytes dont go over max length*/
+    size_t recv_size = req->content_len;
+    if (recv_size >= MAX) {
+        ESP_LOGE(TAG, "Over %d bytes sent", MAX);
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+    content = malloc(sizeof(char) * recv_size + 1);
+    ESP_LOGI(TAG, "Size %d bytes", recv_size);
+    
+    int ret = httpd_req_recv(req, content, recv_size);
+    ESP_LOGI(TAG, "Data %s", content);
+    if (ret <= 0) {  /* 0 return value indicates connection closed */
+        /* Check if timeout occurred */
+        if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
+            /* In case of timeout one can choose to retry calling
+             * httpd_req_recv(), but to keep it simple, here we
+             * respond with an HTTP 408 (Request Timeout) error */
+            httpd_resp_send_408(req);
+        }
+        /* In case of error, returning ESP_FAIL will
+         * ensure that the underlying socket is closed */
+        return ESP_FAIL;
+    }
+    /* Add null terminating byte to convert content buffer into string */
+    content[recv_size] = '\0';
+	cJSON *root = cJSON_Parse(content);
+
+    // sensor_t *s = esp_camera_sensor_get();  
+    if (cJSON_GetObjectItem(root, "saturation")) {
+		int saturation = cJSON_GetObjectItem(root,"saturation")->valueint;
+		ESP_LOGI(TAG, "saturation=%d",saturation);
+        // s->set_saturation(s, saturation);
+	}
+    if (cJSON_GetObjectItem(root, "contrast")) {
+		int contrast = cJSON_GetObjectItem(root,"contrast")->valueint;
+		ESP_LOGI(TAG, "contrast=%d",contrast);
+        //  s->set_contrast(s, contrast);
+	}
+    if (cJSON_GetObjectItem(root, "brightness")) {
+		int brightness = cJSON_GetObjectItem(root,"brightness")->valueint;
+		ESP_LOGI(TAG, "brightness=%d",brightness);
+        // s->set_brightness(s, brightness);
+	}
+	cJSON_Delete(root);         
+    
+    const char resp[] = "Paramaters set";
+    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+
+    // curl -ContentType 'application/json' -Body '{"saturation": 0, "contrast": 1, "brightness": 2}' -Method Post http://192.168.0.XXX:19520/config
+}
+
 // URI handler structure for GET /uri  and /jpeg
 httpd_uri_t uri_get = {
     .uri      = "/uri",
@@ -157,6 +219,13 @@ httpd_uri_t uri_post = {
     .user_ctx = NULL
 };
 
+httpd_uri_t config_settings_post = {
+    .uri       = "/config",
+    .method    = HTTP_POST,
+    .handler   = config_settings_post_handler,
+    .user_ctx  = NULL
+};
+
 // Function for starting the webserver  
 httpd_handle_t start_webserver(void)
 {
@@ -176,6 +245,7 @@ httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &uri_get);
         httpd_register_uri_handler(server, &jpg_get);
         httpd_register_uri_handler(server, &uri_post);
+        httpd_register_uri_handler(server, &config_settings_post);
 
     }
     // If server failed to start, handle will be NULL

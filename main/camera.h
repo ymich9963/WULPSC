@@ -5,7 +5,7 @@
 
 // Camera definitions for ESP32-CAM
 #define CAM_PIN_PWDN 32
-#define CAM_PIN_RESET -1 //software reset will be performed
+#define CAM_PIN_RESET -1 // software reset will be performed
 #define CAM_PIN_XCLK 0
 #define CAM_PIN_SIOD 26
 #define CAM_PIN_SIOC 27
