@@ -73,56 +73,6 @@ void pic_data_output(camera_fb_t *fb){
     ESP_LOGI(TAG, "-----------------------"); 
 }
 
-esp_err_t camera_settings(int enable){
-    sensor_t * sensor = esp_camera_sensor_get();
-
-    // sensor->reset;
-    // sensor->init_status(sensor);
-    // sensor->set_pixformat(sensor,);
-    // sensor->set_framesize(sensor,);
-    // sensor->set_contrast(sensor,);
-    // sensor->set_brightness(sensor,);
-    // sensor->set_saturation(sensor,);
-
-    // sensor->set_quality(sensor,);
-    // sensor->set_colorbar(sensor,);
-
-    // sensor->set_gainceiling(sensor,);
-    // sensor->set_gain_ctrl(sensor,);
-    // sensor->set_exposure_ctrl(sensor,);
-    // sensor->set_hmirror(sensor,);
-    sensor->set_vflip(sensor, enable);
-
-    // sensor->set_whitebal(sensor,);
-    // sensor->set_aec2(sensor,);
-    // sensor->set_aec_value(sensor,);
-    // sensor->set_special_effect(sensor,);
-    // sensor->set_wb_mode(sensor,);
-    // sensor->set_ae_level(sensor,);
-
-    // sensor->set_dcw(sensor,);
-    // sensor->set_bpc(sensor,);
-    // sensor->set_wpc(sensor,);
-    // sensor->set_awb_gain(sensor,);
-    // sensor->set_agc_gain(sensor,);
-
-    // sensor->set_raw_gma(sensor,);
-    // sensor->set_lenc(sensor,);
-
-    // nnot supported
-    // sensor->set_sharpness = set_sharpness;
-    // sensor->set_denoise = set_denoise;
-
-    // what do these do?
-    // sensor->get_reg(sensor,);
-    // sensor->set_reg(sensor,);
-    // sensor->set_res_raw(sensor,);
-    // sensor->set_pll(sensor,);
-    // sensor->set_xclk(sensor,);
-
-    return ESP_OK;
-}
-
 esp_err_t camera_switch(bool cam_switched){
     esp_err_t ret;
     
