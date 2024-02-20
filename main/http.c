@@ -123,27 +123,6 @@ esp_err_t cam2_handler(httpd_req_t *req){
     return ret;
 }
 
-esp_err_t cam_switch_handler(httpd_req_t *req){
-    /* 
-       handler for the second camera. takes the picture but does not switch back.
-       checks if pic is taken before also taking a pic.
-    */
-
-    esp_err_t ret;
-    
-    while(!pic){
-        vTaskDelay(10/portTICK_PERIOD_MS);
-    }
-    
-
-    ret = jpg_httpd_handler(req);
-    if(ret != ESP_OK){
-        ESP_LOGW(TAG, "JPEG Handler returned badly");
-    }
-
-    return ret;
-}
-
 // URI handler structure for GET /uri  and /jpeg
 httpd_uri_t uri_get = {
     .uri      = "/uri",
