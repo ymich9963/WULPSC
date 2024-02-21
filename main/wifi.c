@@ -16,7 +16,7 @@ static EventGroupHandle_t s_wifi_event_group;
 static esp_netif_t *sta_netif;
 static wifi_init_config_t cfg;
 
-void wifi_init_general() // general required calls to initialise wifi
+void wifi_init_general() 
 {
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -67,7 +67,6 @@ void print_auth_mode(int authmode)
     }
 }
 
-// used to set the CONNECTED or FAIL bits
 void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) 

@@ -5,16 +5,41 @@
 #include "sd.h"
 #include "wifi.h"
 #include "http.h"
-#include "config.h"
+#include "system_config.h"
 
 static const char *TAG = "WULPSC";
 
 camera_fb_t * fb = NULL;
 system_config_t sys_config = {
-    .done = 0,
-    .flash = 0,
-    .sd_save = 0,
+    .done =         0,
+    .flash =        0,
+    .sd_save =      0,
+    .pic_taken =    0,
+    .cam_switched = 0,
+    .camera = {
+        .brightness     = 0,    // from -2 to 2            
+        .contrast       = 0,    // from -2 to 2
+        .saturation     = 0,    // from -2 to 2
+        .sharpness      = 0,    // from -2 to 2
+        .denoise        = 127,  // from 0 to 255
+        .special_effect = 0,    // from 0 to 6 
+        .wb_mode        = 0,    // from 0 to 4
+        .ae_level       = 0,    // from -2 to 2
+        .aec_value      = 500,  // from 0 to 1200
+        .agc_gain       = 15,   // from 0 to 30
+        .gainceiling    = 2,    // from 0 to 6
+        .lenc           = false,
+        .agc            = false,
+        .aec            = false,
+        .hmirror        = false,
+        .vflip          = false,
+        .aec2           = false, 
+        .bpc            = false,
+        .wpc            = false
+    }
 };
+
+// system_config_t* _sys_config = &sys_config;
 
 void app_main(void)
 {   
@@ -42,26 +67,21 @@ void app_main(void)
         return; // if camera is not initialised, return 
     }
     
-    // camera settings
-    sys_config.sensor = esp_camera_sensor_get();
-
-    // ret = sys_config.sensor->reset(sys_config.sensor);
-    // if(ret != ESP_OK){ 
-    //     return; 
-    // }
-
-    // sys_config.sensor->set_saturation(sys_config.sensor,0);
-    // camera_set_settings(sys_config.camera, sys_config);
-
     if (sys_config.flash){
         setup_flash();
         turn_on_flash();
     }
 
+    // set sensor, and set to default values
+    sys_config.sensor = esp_camera_sensor_get();
+    camera_set_settings(sys_config);
+    vTaskDelay(1 / portTICK_PERIOD_MS); // 1 ms delay to make sure values get set
+
     ESP_LOGI(TAG, "Taking picture...");
     fb = esp_camera_fb_get();
-    vTaskDelay(10 / portTICK_PERIOD_MS); // 10 millisecond delay for WDT and flash
+    vTaskDelay(10 / portTICK_PERIOD_MS); // 10 ms delay for WDT and flash
 
+    // vTaskDelay(pdMS_TO_TICKS(100));
 
     if(sys_config.flash){
         turn_off_flash();
@@ -84,8 +104,12 @@ void app_main(void)
         return;
     }
 
+    // while(!server_ack){
+        
+    // }
+
     while(server){
-        vTaskDelay(100/portTICK_PERIOD_MS);
+        vTaskDelay(10/portTICK_PERIOD_MS);
         if(sys_config.done){
             ESP_LOGI(TAG, "Server Stopping");
             stop_webserver(server);

@@ -3,7 +3,7 @@
 ## Setup Environment
 To develop for this project there some steps to setup the environment for building and flashing. VS Code is the chosen IDE.
 
-  - Step 1. Donwload ESP-IDF Toolchain [here](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/windows-setup.html) and install normally.
+  - Step 1. Donwload ESP-IDF Toolchain (v5.1.2) [here](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/windows-setup.html) and install normally.
 
  - Step 2. Make note of the installed `IDF_PATH` and `IDF_TOOLS_PATH` , they should be listed in the final screen of the installer.
 
@@ -16,3 +16,6 @@ To develop for this project there some steps to setup the environment for buildi
  - Step 6. Open the project folder in VS Code, press `CTRL + SHIFT + P` and type `>Add vscode configuration folder`. This is to add your own paths to the tools to build and flash the project.
 
  - Step 7. Have fun.
+
+ ## Troubleshooting
+ Make sure the VSCode configuration folder exists and the directories are correct. Delete any auto-generated files or folders and rebuild if it won't build. To flash you will need to setup the correct COMx port and choose UART when doing so.

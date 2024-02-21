@@ -9,6 +9,17 @@ typedef struct {
         size_t len;
 } jpg_chunking_t;
 
+// Our URI handler function to be called during GET /uri request  
+esp_err_t get_handler(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "Entered get handler");
+
+    // Send a simple response 
+    const char resp[] = "URI GET Response";
+    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
 static size_t jpg_encode_stream(void * arg, size_t index, const void* data, size_t len){
     jpg_chunking_t *j = (jpg_chunking_t *)arg;
     if(!index){
@@ -23,6 +34,7 @@ static size_t jpg_encode_stream(void * arg, size_t index, const void* data, size
 
 esp_err_t jpg_httpd_handler(httpd_req_t *req){
     esp_err_t res = ESP_OK;
+    esp_err_t ret = ESP_OK;
 
     // if frame buffer null
     if(!fb){
@@ -51,7 +63,10 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
         } else {
             jpg_chunking_t jchunk = {req, 0};
             res = frame2jpg_cb(fb, 80, jpg_encode_stream, &jchunk)?ESP_OK:ESP_FAIL;
-            httpd_resp_send_chunk(req, NULL, 0);
+            ret = httpd_resp_send_chunk(req, NULL, 0);
+            if(ret==ESP_OK){
+                sys_config.pic_taken = true;
+            }
             ESP_LOGI(TAG, "Response Sent in chunks");
         }
     }
@@ -66,54 +81,72 @@ esp_err_t done_handler(httpd_req_t *req){
     return ESP_OK;
 }
 
-// Our URI handler function to be called during GET /uri request  
-esp_err_t get_handler(httpd_req_t *req)
-{
-    ESP_LOGI(TAG, "Entered get handler");
+esp_err_t cam1_handler(httpd_req_t *req){
+    /* 
+       handler takes a picture then de-initialises and powers down the camera
+       after the MUXs are switched it will power up, re-initialise the second camera
+       to have it ready for the next GET request
+    */
 
-    // Send a simple response 
-    const char resp[] = "URI GET Response";
-    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
-    return ESP_OK;
+    esp_err_t ret;
+    
+    ret = jpg_httpd_handler(req);
+    if(ret != ESP_OK){
+        ESP_LOGW(TAG, "JPEG Handler returned badly");
+    }
+    
+    ret = camera_switch(sys_config.cam_switched);
+    if(ret != ESP_OK){
+        ESP_LOGE(TAG, "Camera switch returned badly");
+    }
+
+    return ret;
 }
 
-esp_err_t change_settings_handler(httpd_req_t *req){
-    sys_config.sensor->set_exposure_ctrl(sys_config.sensor,0);
-    ESP_LOGI(TAG, "Settings changed.");
+esp_err_t cam2_handler(httpd_req_t *req){
+    /* 
+       handler for the second camera. takes the picture but does not switch back.
+       checks if pic is taken before also taking a pic.
+    */
 
-    return ESP_OK;
+    esp_err_t ret;
+    
+    ESP_LOGI(TAG, "Waiting for first picture to finish sending.");
+    while(!sys_config.pic_taken){
+        vTaskDelay(10/portTICK_PERIOD_MS);
+    }
+    
+
+    ret = jpg_httpd_handler(req);
+    if(ret != ESP_OK){
+        ESP_LOGW(TAG, "JPEG Handler returned badly");
+    }
+
+    return ret;
 }
 
-esp_err_t revert_settings_handler(httpd_req_t *req){
-    sys_config.sensor->set_exposure_ctrl(sys_config.sensor,1);
-    ESP_LOGI(TAG, "Settings changed.");
 
-    return ESP_OK;
-}
+esp_err_t config_settings_post_handler(httpd_req_t *req){
 
-esp_err_t reset_handler(httpd_req_t *req){
-    sys_config.sensor->reset(sys_config.sensor);
-    ESP_LOGI(TAG, "Settings changed.");
+    /* Buffer for recieving content/params, content is expected to be a JSON string
+    * such as {saturation: 2, contrast: 0, brightness: 1, ...} */
+    int MAX = 511;
+    char *content;
 
-    return ESP_OK;
-}
-
-// Our URI handler function to be called during POST /uri request
-esp_err_t post_handler(httpd_req_t *req)
-{
-    /* Destination buffer for content of HTTP POST request.
-     * httpd_req_recv() accepts char* only, but content could
-     * as well be any binary data (needs type casting).
-     * In case of string data, null termination will be absent, and
-     * content length would give length of string */
-    char content[100];
-
-    // Truncate if content length larger than the buffer
-    size_t recv_size = MIN(req->content_len, sizeof(content));
-
+    /* Make sure bytes dont go over max length*/
+    size_t recv_size = req->content_len;
+    if (recv_size >= MAX) {
+        ESP_LOGE(TAG, "Over %d bytes sent", MAX);
+        httpd_resp_send_500(req);
+        return ESP_FAIL;
+    }
+    content = malloc(sizeof(char) * recv_size + 1);
+    ESP_LOGI(TAG, "Size %d bytes", recv_size);
+    
     int ret = httpd_req_recv(req, content, recv_size);
-    if (ret <= 0) {  // 0 return value indicates connection closed 
-        // Check if timeout occurred
+    ESP_LOGI(TAG, "Data %s", content);
+    if (ret <= 0) {  /* 0 return value indicates connection closed */
+        /* Check if timeout occurred */
         if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
             /* In case of timeout one can choose to retry calling
              * httpd_req_recv(), but to keep it simple, here we
@@ -124,28 +157,22 @@ esp_err_t post_handler(httpd_req_t *req)
          * ensure that the underlying socket is closed */
         return ESP_FAIL;
     }
-    // Spliting paramters recieved
+    /* Add null terminating byte to convert content buffer into string */
+    content[recv_size] = '\0';
+	
 
-    char * token = strtok(content, ","); // split string with ,
-    int i = 0;
-    long param[] = {0, 0, 0};
-    while( token != NULL ) {
-      param[i] = strtol(token, NULL, 10); // convert to long?
-      token = strtok(NULL, ",");
-      i++;
-    }
-    ESP_LOGI(TAG, "Saturation %ld", param[0] );
-    ESP_LOGI(TAG, "Contrast %ld", param[1] );
-    ESP_LOGI(TAG, "Brightness %ld", param[2] );
-    // Send a simple response
-    const char resp[] = "URI POST Response";
+    sys_config = JSON_config_set(content, sys_config);
+    camera_set_settings(sys_config);
+
+    
+    const char resp[] = "Paramaters set";
     httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 
-    // curl -ContentType 'text/plain' -Body '0,2,1' -Method Post http://95.147.177.160:19520/post
+    // curl -ContentType 'application/json' -Body '{"saturation": 0, "contrast": 1, "brightness": 2}' -Method Post http://192.168.0.XXX:19520/config
 }
 
-// URI handler structure for GET /uri  and /jpeg
+/* GET Handlers */
 httpd_uri_t uri_get = {
     .uri      = "/uri",
     .method   = HTTP_GET,
@@ -167,41 +194,41 @@ httpd_uri_t done_get = {
     .user_ctx = NULL
 };
 
-httpd_uri_t change_settings_get = {
-    .uri      = "/cs",
+httpd_uri_t cam1_get = {
+    .uri      = "/cam1",
     .method   = HTTP_GET,
-    .handler  = change_settings_handler,
+    .handler  = cam1_handler,
     .user_ctx = NULL
 };
 
-httpd_uri_t revert_settings_get = {
-    .uri      = "/rs",
+httpd_uri_t cam2_get = {
+    .uri      = "/cam2",
     .method   = HTTP_GET,
-    .handler  = revert_settings_handler,
+    .handler  = cam2_handler,
     .user_ctx = NULL
 };
 
-httpd_uri_t reset_get = {
-    .uri      = "/reset",
-    .method   = HTTP_GET,
-    .handler  = reset_handler,
-    .user_ctx = NULL
-};
 
-// URI handler structure for POST /post
-httpd_uri_t uri_post = {
-    .uri      = "/post",
+/* POST Handlers */
+httpd_uri_t config_settings_post = {
+    .uri      = "/config",
     .method   = HTTP_POST,
-    .handler  = post_handler,
+    .handler  = config_settings_post_handler,
     .user_ctx = NULL
 };
 
-// Function for starting the webserver  
 httpd_handle_t start_webserver(void)
 {
     // Generate default configuration
+    //! TODO: try to change settings so that it gives up quickly
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.server_port = 19520;
+    // config.keep_alive_enable = true;
+    // config.keep_alive_idle = 3;
+    // config.keep_alive_interval = 3;
+    // config.keep_alive_count = 3;
+    // config.recv_wait_timeout = 1;
+    // config.send_wait_timeout = 1;
 
     // Empty handle to esp_http_server
     httpd_handle_t server = NULL;
@@ -211,21 +238,21 @@ httpd_handle_t start_webserver(void)
     {
         // Register URI handlers
 
-        // POST
-        httpd_register_uri_handler(server, &uri_get);
-        httpd_register_uri_handler(server, &jpg_get);
-        httpd_register_uri_handler(server, &done_get);
-        httpd_register_uri_handler(server, &reset_get);
-        httpd_register_uri_handler(server, &change_settings_get);
-        httpd_register_uri_handler(server, &revert_settings_get);
-
         // GET
-        httpd_register_uri_handler(server, &uri_post);
+        httpd_register_uri_handler(server, &uri_get);   // simple handler for testing
+        httpd_register_uri_handler(server, &jpg_get);   // to get the image
+        httpd_register_uri_handler(server, &done_get);  // to exit main loop and shutdown
+        httpd_register_uri_handler(server, &cam1_get);  // camera 1 handler
+        httpd_register_uri_handler(server, &cam2_get);  // camera 2 handler
+
+        // POST
+        httpd_register_uri_handler(server, &config_settings_post); // change camera settings
 
     }
     // If server failed to start, handle will be NULL
     return server;
 }
+
 
 // Function for stopping the webserver
 void stop_webserver(httpd_handle_t server)

@@ -29,8 +29,24 @@
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
 
-esp_err_t sd_init();
 
+/**
+ * @brief Initialise the SD card, save the picture and de-initialise
+ * 
+ * @param fb Pointer to the camera frame buffer
+ * 
+ * @return ESP_OK on success
+*/
+esp_err_t sd_init(camera_fb_t *fb);
+
+/**
+ * @brief Writes all of the image data to a file
+ * 
+ * @param path File path
+ * @param fb Pointer to the camera frame buffer
+ * 
+ * @return ESP_OK on success
+*/
 esp_err_t write_arr(const char *path, camera_fb_t *fb);
 
 #endif
