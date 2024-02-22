@@ -55,7 +55,7 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
         res = httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
     }
 
-    // TODO: make chunking availiable without it being in a non-JPEG format
+    //! TODO: make chunking availiable without it being in a non-JPEG format
     if(res == ESP_OK){
         if(fb->format == PIXFORMAT_JPEG){
             res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
@@ -64,10 +64,10 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
             jpg_chunking_t jchunk = {req, 0};
             res = frame2jpg_cb(fb, 80, jpg_encode_stream, &jchunk)?ESP_OK:ESP_FAIL;
             ret = httpd_resp_send_chunk(req, NULL, 0);
-            if(ret==ESP_OK){
-                sys_config.pic_taken = true;
-            }
             ESP_LOGI(TAG, "Response Sent in chunks");
+        }
+        if(ret==ESP_OK){
+            sys_config.pic_taken = true;
         }
     }
     esp_camera_fb_return(fb);
