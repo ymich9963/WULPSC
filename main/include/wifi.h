@@ -12,6 +12,7 @@
 #define WIFI_FAIL_BIT      BIT1
 #define DEFAULT_SCAN_LIST_SIZE 5
 
+#include "esp_wifi.h"
 
 /**
  * @brief General required calls to initialise WiFi functionality

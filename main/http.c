@@ -122,6 +122,11 @@ esp_err_t cam2_handler(httpd_req_t *req){
         ESP_LOGW(TAG, "JPEG Handler returned badly");
     }
 
+    ret = camera_switch(sys_config.cam_switched);
+    if(ret != ESP_OK){
+        ESP_LOGE(TAG, "Camera switch returned badly");
+    }
+
     return ret;
 }
 
@@ -162,6 +167,7 @@ esp_err_t config_settings_post_handler(httpd_req_t *req){
 	
 
     sys_config = JSON_config_set(content, sys_config);
+    sys_config.sensor = esp_camera_sensor_get();
     camera_set_settings(sys_config);
 
     
@@ -170,6 +176,7 @@ esp_err_t config_settings_post_handler(httpd_req_t *req){
     return ESP_OK;
 
     // curl -ContentType 'application/json' -Body '{"saturation": 0, "contrast": 1, "brightness": 2}' -Method Post http://192.168.0.XXX:19520/config
+    // curl -ContentType 'application/json' -Body camera_settings.json  -Method Post http://192.168.124.112:19520/config
 }
 
 /* GET Handlers */

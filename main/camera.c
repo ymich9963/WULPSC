@@ -3,6 +3,7 @@
 #include "camera.h"
 
 static const char *TAG = "WULPSC - Camera";
+extern system_config_t sys_config;
 
 // declare the camera configuration
 camera_config_t camera_config = {
@@ -119,6 +120,10 @@ esp_err_t camera_switch(bool cam_switched){
     if(ret != ESP_OK){
         ESP_LOGW(TAG, "Camera init returned badly");
     }
+
+    // set settings again
+    // sys_config.sensor = esp_camera_sensor_get();
+    // camera_set_settings(sys_config);
 
     return ESP_OK;
 }

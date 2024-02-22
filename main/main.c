@@ -20,8 +20,8 @@ system_config_t sys_config = {
         .brightness     = 0,    // from -2 to 2            
         .contrast       = 0,    // from -2 to 2
         .saturation     = 0,    // from -2 to 2
-        .sharpness      = 0,    // from -2 to 2
-        .denoise        = 127,  // from 0 to 255
+        .sharpness      = 0,    // from -2 to 2, NOT SUPPORTED
+        .denoise        = 0,    // from 0 to 255, NOT SUPPORTED
         .special_effect = 0,    // from 0 to 6 
         .wb_mode        = 0,    // from 0 to 4
         .ae_level       = 0,    // from -2 to 2
@@ -73,15 +73,13 @@ void app_main(void)
     }
 
     // set sensor, and set to default values
-    sys_config.sensor = esp_camera_sensor_get();
-    camera_set_settings(sys_config);
+    // sys_config.sensor = esp_camera_sensor_get();
+    // camera_set_settings(sys_config);
     vTaskDelay(1 / portTICK_PERIOD_MS); // 1 ms delay to make sure values get set
 
     ESP_LOGI(TAG, "Taking picture...");
     fb = esp_camera_fb_get();
     vTaskDelay(10 / portTICK_PERIOD_MS); // 10 ms delay for WDT and flash
-
-    // vTaskDelay(pdMS_TO_TICKS(100));
 
     if(sys_config.flash){
         turn_off_flash();
@@ -109,6 +107,7 @@ void app_main(void)
     // }
 
     while(server){
+        // ESP_LOGI(TAG, "Entered server loop");
         vTaskDelay(10/portTICK_PERIOD_MS);
         if(sys_config.done){
             ESP_LOGI(TAG, "Server Stopping");

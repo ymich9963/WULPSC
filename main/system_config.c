@@ -8,8 +8,8 @@ esp_err_t camera_set_settings(system_config_t sys_config){
     sys_config.sensor->set_brightness(sys_config.sensor, sys_config.camera.brightness);            // from -2 to 2
     sys_config.sensor->set_contrast(sys_config.sensor, sys_config.camera.contrast);                // from -2 to 2
     sys_config.sensor->set_saturation(sys_config.sensor, sys_config.camera.saturation);            // from -2 to 2
-    sys_config.sensor->set_sharpness(sys_config.sensor, sys_config.camera.sharpness);              // from -2 to 2
-    sys_config.sensor->set_denoise(sys_config.sensor, sys_config.camera.denoise);                  // from 0 to 255
+    // sys_config.sensor->set_sharpness(sys_config.sensor, sys_config.camera.sharpness);              // from -2 to 2 NOT SUPPORTED
+    // sys_config.sensor->set_denoise(sys_config.sensor, sys_config.camera.denoise);                  // from 0 to 255 NOT SUPPORTED
     sys_config.sensor->set_special_effect(sys_config.sensor, sys_config.camera.special_effect);    // from 0 to 6
     sys_config.sensor->set_wb_mode(sys_config.sensor, sys_config.camera.wb_mode);                  // from 0 to 4, white balance mode
     sys_config.sensor->set_ae_level(sys_config.sensor, sys_config.camera.ae_level);                // from -2 to 2, valid when set_exposure is ON
@@ -18,7 +18,7 @@ esp_err_t camera_set_settings(system_config_t sys_config){
     sys_config.sensor->set_gainceiling(sys_config.sensor, sys_config.camera.gainceiling);          // from 0 to 6, upper limit of gain
     
     // settings with 1/0 enable/disable
-    sys_config.sensor->set_lenc(sys_config.sensor, sys_config.camera.lenc);                         // lens correction
+    // sys_config.sensor->set_lenc(sys_config.sensor, sys_config.camera.lenc);                         // lens correction
     sys_config.sensor->set_gain_ctrl(sys_config.sensor, sys_config.camera.agc);                     // auto gain control on/off    
     sys_config.sensor->set_exposure_ctrl(sys_config.sensor, sys_config.camera.aec);                 /* auto exposure control on/off, variable to use is awb, 
                                                                                             it is ON by default. If this ON state alone is insufficient for the exposure value, it is a good idea to also turn set_aec2 ON.     */
@@ -35,6 +35,7 @@ esp_err_t camera_set_settings(system_config_t sys_config){
 
 system_config_t JSON_config_set(char* content, system_config_t sys_config){
     cJSON *root = cJSON_Parse(content);
+    ESP_LOGI(TAG, "Changing settings...");
     if (cJSON_GetObjectItem(root, "brightness")) {
 		int8_t _brightness = cJSON_GetObjectItem(root,"brightness")->valueint;
         sys_config.camera.brightness =  _brightness;
