@@ -66,6 +66,14 @@ esp_err_t init_camera();
 */
 esp_err_t camera_switch(bool cam_switched);
 
+/**
+ * @brief Refresh the frame buffer by taking a pic a discarding it
+ * 
+ * @param fb - frame buffer
+ * 
+ * @note It was observed that for an updated picture with the correct settings, the picture had to be taken twice, this function simplifies that process.
+*/
+esp_err_t fb_refresh(camera_fb_t * fb);
 
 
 #endif

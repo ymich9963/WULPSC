@@ -38,6 +38,7 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
 
     // if frame buffer null
     if(!fb){
+        fb_refresh(fb);
         fb = esp_camera_fb_get();
         ESP_LOGI(TAG,"Took new picture.");
         pic_data_output(fb);

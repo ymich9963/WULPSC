@@ -18,4 +18,6 @@ To develop for this project there some steps to setup the environment for buildi
  - Step 7. Have fun.
 
  ## Troubleshooting
- Make sure the VSCode configuration folder exists and the directories are correct. Delete any auto-generated files or folders and rebuild if it won't build. To flash you will need to setup the correct COMx port and choose UART when doing so.
+ Make sure the VSCode configuration folder exists and the directories are correct. Delete any auto-generated files or folders and rebuild if it won't build. To flash you will need to setup the correct COMx port and choose UART when doing so. 
+
+ For WiFi to work in some cases port forwarding or placing the IP address into the DMZ may be required if errors occur. PLease advise your internet service provider for doing so.

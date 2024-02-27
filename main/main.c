@@ -25,17 +25,17 @@ system_config_t sys_config = {
         .special_effect = 0,    // from 0 to 6 
         .wb_mode        = 0,    // from 0 to 4
         .ae_level       = 0,    // from -2 to 2
-        .aec_value      = 500,  // from 0 to 1200
-        .agc_gain       = 15,   // from 0 to 30
-        .gainceiling    = 2,    // from 0 to 6
-        .lenc           = false,
+        .aec_value      = 300,  // from 0 to 1200
+        .agc_gain       = 2,    // from 0 to 30
+        .gainceiling    = 6,    // from 0 to 6
+        .lenc           = true,
         .agc            = false,
         .aec            = false,
         .hmirror        = false,
         .vflip          = false,
         .aec2           = false, 
-        .bpc            = false,
-        .wpc            = false
+        .bpc            = true,
+        .wpc            = true
     }
 };
 
@@ -73,8 +73,12 @@ void app_main(void)
     }
 
     // set sensor, and set to default values
-    // sys_config.sensor = esp_camera_sensor_get();
-    // camera_set_settings(sys_config);
+    sys_config.sensor = esp_camera_sensor_get();
+    camera_set_settings(sys_config);
+    
+    fb_refresh(fb);
+
+    ESP_LOGI(TAG, "Set system settings...");
     vTaskDelay(1 / portTICK_PERIOD_MS); // 1 ms delay to make sure values get set
 
     ESP_LOGI(TAG, "Taking picture...");

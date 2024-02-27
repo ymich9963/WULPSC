@@ -1,5 +1,5 @@
 {
-    "brightness":       -2,
+    "brightness":       0,
     "contrast":         0, 
     "saturation":       0, 
     "sharpness":        0,
@@ -7,15 +7,15 @@
     "special_effect":   0,
     "wb_mode":          0,
     "ae_level":         0,
-    "aec_value":        600,
-    "agc_gain":         30,
-    "gainceiling":      3,
-    "lenc":             0,
+    "aec_value":        300,
+    "agc_gain":         2,
+    "gainceiling":      6,
+    "lenc":             1,
     "agc":              0,
     "aec":              0,
     "hmirror":          0,
     "vflip":            0,
     "aec2":             0,
-    "bpc":              0,
-    "wpc":              0
+    "bpc":              1,
+    "wpc":              1
 }
