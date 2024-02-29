@@ -26,7 +26,12 @@ typedef struct{
 */
 esp_err_t camera_set_settings(system_config_t sys_config);
 
-
+/**
+ * @brief Used for debugging the camera sensor settings
+ * 
+ * @param sys_config the system config variable
+*/
+void camera_get_settings(system_config_t sys_config);
 
 /**
  * @brief Uses the content received and parses it to the corresponding system config variables

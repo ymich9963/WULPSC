@@ -38,7 +38,7 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
 
     // if frame buffer null
     if(!fb){
-        fb_refresh(fb);
+        fb = fb_refresh(fb);
         fb = esp_camera_fb_get();
         ESP_LOGI(TAG,"Took new picture.");
         pic_data_output(fb);
@@ -50,13 +50,14 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
+
     ESP_LOGI(TAG,"Picture received. Trying to send now.");
     res = httpd_resp_set_type(req, "image/jpeg");
     if(res == ESP_OK){
         res = httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
     }
 
-    //! TODO: make chunking availiable without it being in a non-JPEG format
+    //! TODO: make chunking availiable without it being in a non-JPEG format, change 80 in frame2jpg
     if(res == ESP_OK){
         if(fb->format == PIXFORMAT_JPEG){
             res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
@@ -176,8 +177,7 @@ esp_err_t config_settings_post_handler(httpd_req_t *req){
     httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 
-    // curl -ContentType 'application/json' -Body '{"saturation": 0, "contrast": 1, "brightness": 2}' -Method Post http://192.168.0.XXX:19520/config
-    // curl -ContentType 'application/json' -Body camera_settings.json  -Method Post http://192.168.124.112:19520/config
+    /* Sample cURL command is in http.h */
 }
 
 /* GET Handlers */

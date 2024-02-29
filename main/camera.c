@@ -36,7 +36,7 @@ camera_config_t camera_config = {
 
     .jpeg_quality   = 4,        //0-63, for OV series camera sensors, lower number means higher quality
     .fb_count       = 1,        //When jpeg mode is used, if fb_count more than one, the driver will work in continuous mode.
-    .grab_mode      = CAMERA_GRAB_LATEST,
+    .grab_mode      = CAMERA_GRAB_WHEN_EMPTY,
     .fb_location    = CAMERA_FB_IN_PSRAM,
 };
 
@@ -129,9 +129,11 @@ esp_err_t camera_switch(bool cam_switched){
 }
 
 
-esp_err_t fb_refresh(camera_fb_t * fb){
+camera_fb_t* fb_refresh(camera_fb_t * fb){
     fb = esp_camera_fb_get();
     esp_camera_fb_return(fb);
-
-    return ESP_OK;
+    fb = NULL;
+    
+    ESP_LOGI(TAG, "Refreshed camera...");
+    return fb;
 }

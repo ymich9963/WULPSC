@@ -9,7 +9,7 @@
 
 static const char *TAG = "WULPSC";
 
-camera_fb_t * fb = NULL;
+camera_fb_t* fb = NULL;
 system_config_t sys_config = {
     .done =         0,
     .flash =        0,
@@ -23,11 +23,11 @@ system_config_t sys_config = {
         .sharpness      = 0,    // from -2 to 2, NOT SUPPORTED
         .denoise        = 0,    // from 0 to 255, NOT SUPPORTED
         .special_effect = 0,    // from 0 to 6 
-        .wb_mode        = 0,    // from 0 to 4
+        .wb_mode        = 3,    // from 0 to 4
         .ae_level       = 0,    // from -2 to 2
-        .aec_value      = 300,  // from 0 to 1200
-        .agc_gain       = 2,    // from 0 to 30
-        .gainceiling    = 6,    // from 0 to 6
+        .aec_value      = 100,  // from 0 to 1200
+        .agc_gain       = 3,    // from 0 to 30
+        .gainceiling    = 1,    // from 0 to 6
         .lenc           = true,
         .agc            = false,
         .aec            = false,
@@ -59,7 +59,7 @@ void app_main(void)
     }
 
     wifi_init_general();
-    wifi_scan();
+    // wifi_scan();
     wifi_init_sta();    
 
     ret = init_camera();
@@ -72,17 +72,18 @@ void app_main(void)
         turn_on_flash();
     }
 
+
     // set sensor, and set to default values
     sys_config.sensor = esp_camera_sensor_get();
-    camera_set_settings(sys_config);
-    
-    fb_refresh(fb);
+    camera_set_settings(sys_config);  
 
-    ESP_LOGI(TAG, "Set system settings...");
-    vTaskDelay(1 / portTICK_PERIOD_MS); // 1 ms delay to make sure values get set
+    fb = fb_refresh(fb);
 
     ESP_LOGI(TAG, "Taking picture...");
     fb = esp_camera_fb_get();
+
+    camera_get_settings(sys_config);
+
     vTaskDelay(10 / portTICK_PERIOD_MS); // 10 ms delay for WDT and flash
 
     if(sys_config.flash){

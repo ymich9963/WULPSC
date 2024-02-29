@@ -31,7 +31,30 @@ esp_err_t camera_set_settings(system_config_t sys_config){
     sys_config.sensor->set_bpc(sys_config.sensor, sys_config.camera.bpc);                           // black pixel correction        
     sys_config.sensor->set_wpc(sys_config.sensor, sys_config.camera.wpc);                           // white pixel correction        
 
+    ESP_LOGI(TAG, "Set camera settings...");
     return ESP_OK;
+}
+
+void camera_get_settings(system_config_t sys_config){
+    
+    ESP_LOGI(TAG, "---SENSOR--DATA---");
+    ESP_LOGI(TAG, "Brightness: %d", sys_config.sensor->status.brightness);
+    ESP_LOGI(TAG, "Contrast: %d", sys_config.sensor->status.contrast);
+    ESP_LOGI(TAG, "Saturation: %d", sys_config.sensor->status.saturation);
+    ESP_LOGI(TAG, "Special Effect: %d", sys_config.sensor->status.special_effect);
+    ESP_LOGI(TAG, "WB Mode: %d", sys_config.sensor->status.wb_mode);
+    ESP_LOGI(TAG, "AE Level: %d", sys_config.sensor->status.ae_level);
+    ESP_LOGI(TAG, "AEC Value: %d", sys_config.sensor->status.aec_value);
+    ESP_LOGI(TAG, "AGC Gain: %d", sys_config.sensor->status.agc_gain);
+    ESP_LOGI(TAG, "Gainceiling: %d", sys_config.sensor->status.gainceiling);
+    ESP_LOGI(TAG, "Lenc: %d", sys_config.sensor->status.lenc);
+    ESP_LOGI(TAG, "AGC: %d", sys_config.sensor->status.agc);
+    ESP_LOGI(TAG, "AEC: %d", sys_config.sensor->status.aec);
+    ESP_LOGI(TAG, "HMirror: %d", sys_config.sensor->status.hmirror);
+    ESP_LOGI(TAG, "VFlip: %d", sys_config.sensor->status.vflip);
+    ESP_LOGI(TAG, "AEC2: %d", sys_config.sensor->status.aec2);
+    ESP_LOGI(TAG, "BPC: %d", sys_config.sensor->status.bpc);
+    ESP_LOGI(TAG, "WPC: %d", sys_config.sensor->status.wpc);
 }
 
 system_config_t JSON_config_set(char* content, system_config_t sys_config){
