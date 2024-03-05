@@ -11,11 +11,11 @@ static const char *TAG = "WULPSC";
 
 camera_fb_t* fb = NULL;
 system_config_t sys_config = {
-    .done =         0,
-    .flash =        0,
-    .sd_save =      0,
-    .pic_taken =    0,
-    .cam_switched = 0,
+    .exit =         false,
+    .flash =        false,
+    .sd_save =      SD_OK,
+    .pic_poll =     false,
+    .cam_switched = false,
     .camera = {
         .brightness     = 0,    // from -2 to 2            
         .contrast       = 0,    // from -2 to 2
@@ -39,8 +39,6 @@ system_config_t sys_config = {
     }
 };
 
-// system_config_t* _sys_config = &sys_config;
-
 void app_main(void)
 {   
     esp_err_t ret; // variable for function returns
@@ -51,60 +49,58 @@ void app_main(void)
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND){
         ESP_ERROR_CHECK(nvs_flash_erase());
-        ret = nvs_flash_init();
+        ESP_ERROR_CHECK(nvs_flash_init()); 
     }
 
-    if(ret != ESP_OK){
-        return;
-    }
+    // Initialise SD card
+    sd_init();
 
+    // Read the WiFi credentials from the SD card
+    read_wifi_credentials();
+    
+    // Checks if SD should be de-initialised
+    sys_sd_save_check(sys_config, fb);
+
+    /* Initialise WiFi */
     wifi_init_general();
-    // wifi_scan();
     wifi_init_sta();    
 
-    ret = init_camera();
-    if(ret != ESP_OK){ 
-        return; // if camera is not initialised, return 
-    }
+    // Setup the flash LED
+    setup_flash();
+
+    /* Initialise the camera */
+    init_camera();
     
-    if (sys_config.flash){
-        setup_flash();
-        turn_on_flash();
-    }
-
-
-    // set sensor, and set to default values
+    /* Set sensor, and set to default values */
     sys_config.sensor = esp_camera_sensor_get();
     camera_set_settings(sys_config);  
 
+    /* Refresh picture to make sure the latest image is received */
     fb = fb_refresh(fb);
 
     ESP_LOGI(TAG, "Taking picture...");
-    fb = esp_camera_fb_get();
-
-    camera_get_settings(sys_config);
-
-    vTaskDelay(10 / portTICK_PERIOD_MS); // 10 ms delay for WDT and flash
-
-    if(sys_config.flash){
-        turn_off_flash();
+    fb = sys_take_picture(sys_config); 
+    if(fb){
+        ESP_LOGI(TAG, "Picture taken!");
+    }else{
+        ESP_LOGW(TAG, "Picture not taken!!!");
     }
 
-    pic_data_output(fb); // for logging
+    // Check if SD should be saved
+    sys_sd_save_check(sys_config, fb);
 
-    if(sys_config.sd_save){
-        ret = sd_init(fb);
-    }
+    /* Display settings to console for debugging */
+    // camera_get_settings(sys_config);
 
-    if(ret != ESP_OK){
-        ESP_LOGE(TAG,"Error with SD init");
-        return;
-    }
+    /* Display picture data for debugging */
+    pic_data_output(fb);
 
     server = start_webserver();
     if(server == NULL){
         ESP_LOGE(TAG,"Error Server is NULL");
         return;
+    } {
+        ESP_LOGI(TAG, "Started server...");
     }
 
     // while(!server_ack){
@@ -114,15 +110,16 @@ void app_main(void)
     while(server){
         // ESP_LOGI(TAG, "Entered server loop");
         vTaskDelay(10/portTICK_PERIOD_MS);
-        if(sys_config.done){
+        if(sys_config.exit){
             ESP_LOGI(TAG, "Server Stopping");
             stop_webserver(server);
             server = NULL;
         }
     }
 
-    // return frame buffer
+    // Return frame buffer
     esp_camera_fb_return(fb);
+    sd_deinit();
     ESP_LOGI(TAG, "Frame buffer returned before exit");
 
     ESP_LOGI(TAG,"DONE!!!!!!!!!!!");

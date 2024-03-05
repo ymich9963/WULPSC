@@ -6,16 +6,25 @@
 #include "esp_err.h"
 #include "cJSON.h"
 
-/* System Configuration structure. Stores all system settings*/
+/* States used for checking the SD configuration */
+typedef enum{
+    NO_SD,
+    SD_OK,
+    SD_SAVE
+}sd_state_t;
+
+/* System Configuration structure. Stores all system settings */
 typedef struct{
-    bool sd_save;
+    sd_state_t sd_save;
     bool flash;
-    bool done;
-    bool pic_taken;
+    bool exit;
+    bool pic_poll;
     bool cam_switched;
     sensor_t* sensor;
     camera_status_t camera;
 }system_config_t;
+
+
 
 /**
  * @brief Takes all camera variables in the system config and sets them
@@ -44,6 +53,25 @@ void camera_get_settings(system_config_t sys_config);
 system_config_t JSON_config_set(char* content, system_config_t sys_config);
 
 
+/**
+ * @brief Checks SD configuration and saves the image if appropriate
+ * 
+ * @param sys_config the system config variable
+ * @param fb camera frame buffer
+ * 
+ * @return ESP_OK
+*/
+esp_err_t sys_sd_save_check(system_config_t sys_config, camera_fb_t* fb);
+
+
+/**
+ * @brief Take a picture. Used to check if picture should be taken with flash or not
+ * 
+ * @param sys_config the system config variable
+ * 
+ * @return camera frame buffer
+*/
+camera_fb_t* sys_take_picture(system_config_t sys_config);
 
 
 #endif

@@ -1,6 +1,17 @@
 #ifndef SD_H
 #define SD_H
 
+#include "esp_err.h"
+#include "esp_camera.h"
+#include <nvs_flash.h>
+
+// from SD card example
+#include <string.h>
+#include <sys/unistd.h>
+#include <sys/stat.h>
+#include "esp_vfs_fat.h"
+#include "sdmmc_cmd.h"
+
 // SD card pins used in SPI communication
 //based on sdspi example
 #define SD_DATA0 2
@@ -16,19 +27,9 @@
 
 // Folder to mount at
 #define MOUNT_POINT "/sdcard"
-#define FILE_NAME MOUNT_POINT"/img.jpg"
-
-#include "esp_err.h"
-#include "esp_camera.h"
-#include <nvs_flash.h>
-
-// from SD card example
-#include <string.h>
-#include <sys/unistd.h>
-#include <sys/stat.h>
-#include "esp_vfs_fat.h"
-#include "sdmmc_cmd.h"
-
+#define PIC_FILE_NAME MOUNT_POINT"/img.jpg"
+#define WIFICRED_FILE_NAME MOUNT_POINT"/wificred.txt" 
+#define MAX_CHAR_LINE 30
 
 /**
  * @brief Initialise the SD card, save the picture and de-initialise
@@ -37,7 +38,7 @@
  * 
  * @return ESP_OK on success
 */
-esp_err_t sd_init(camera_fb_t *fb);
+esp_err_t sd_init();
 
 /**
  * @brief Writes all of the image data to a file
@@ -47,6 +48,15 @@ esp_err_t sd_init(camera_fb_t *fb);
  * 
  * @return ESP_OK on success
 */
-esp_err_t write_arr(const char *path, camera_fb_t *fb);
+esp_err_t sd_write_arr(const char *path, camera_fb_t *fb);
+
+/**
+ * @brief De-initialise the SD card, variables used are the globals defined in sd.c
+*/
+esp_err_t sd_deinit();
+/**
+ * @brief Read WiFi credentials from the file wificred located on the SD card 
+*/
+esp_err_t read_wifi_credentials();
 
 #endif

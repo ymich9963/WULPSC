@@ -16,13 +16,13 @@
 static size_t jpg_encode_stream(void * arg, size_t index, const void* data, size_t len);
 
 /**
- * @brief JPEG HTTP handler. Used to send a JPG using HTTP.
+ * @brief JPEG HTTP handler. Used to send a JPG using HTTP and handles if the image is taken with flash or if the image is saved
  * 
  * @param req pointer to HTTP request 
  * 
  * @return ESP_OK on success
 */
-esp_err_t jpg_httpd_handler(httpd_req_t *req);
+esp_err_t picture_handler(httpd_req_t *req);
 
 /**
  * @brief A simple HTTP handler. Used to test server connection.

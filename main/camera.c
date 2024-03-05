@@ -51,22 +51,21 @@ esp_err_t init_camera(){
     return ESP_OK;
 }
 
-void setup_flash(){
-    gpio_set_level(CAM_PIN_FLASH,0); //initialise to 0 so to not blink twice
-    gpio_set_direction(CAM_PIN_FLASH,GPIO_MODE_OUTPUT);
+esp_err_t setup_flash(){
+    ESP_ERROR_CHECK(gpio_set_level(CAM_PIN_FLASH,0)); //initialise to 0 so to not blink twice
+    return gpio_set_direction(CAM_PIN_FLASH,GPIO_MODE_OUTPUT);
 }
 
-void turn_on_flash(){
-    gpio_set_level(CAM_PIN_FLASH,1);
+esp_err_t turn_on_flash(){
+    return gpio_set_level(CAM_PIN_FLASH,1);
 }
 
-void turn_off_flash(){
-    gpio_set_level(CAM_PIN_FLASH,0);
+esp_err_t turn_off_flash(){
+    return gpio_set_level(CAM_PIN_FLASH,0);
 }
 
 void pic_data_output(camera_fb_t *fb){
     ESP_LOGI(TAG, "-----------------------");
-    ESP_LOGI(TAG, "Picture taken!");
     ESP_LOGI(TAG, "Size: %zu bytes", fb->len);
     ESP_LOGI(TAG, "Height: %zu", fb->height);
     ESP_LOGI(TAG, "Width: %zu", fb->width);

@@ -2,7 +2,15 @@
 
 const static char* TAG = "WULPSC - SD";
 
-esp_err_t write_arr(const char *path, camera_fb_t *fb){
+sdmmc_card_t *card;
+const char mount_point[] = MOUNT_POINT;
+char sd_ssid[MAX_CHAR_LINE];
+char sd_pswd[MAX_CHAR_LINE];
+
+// Default structure initializer for SD over SPI driver
+sdmmc_host_t host = SDSPI_HOST_DEFAULT();
+
+esp_err_t sd_write_arr(const char *path, camera_fb_t *fb){
     size_t ret;
     ESP_LOGI(TAG, "Opening file %s", path);
     FILE *f = fopen(path, "wb");
@@ -18,7 +26,7 @@ esp_err_t write_arr(const char *path, camera_fb_t *fb){
     return ESP_OK;
 }
 
-esp_err_t sd_init(camera_fb_t *fb){
+esp_err_t sd_init(){
     esp_err_t ret; 
 
     // file system config
@@ -28,8 +36,7 @@ esp_err_t sd_init(camera_fb_t *fb){
         .allocation_unit_size = 16 * 1024
     };
 
-    sdmmc_card_t *card;
-    const char mount_point[] = MOUNT_POINT;
+    
     ESP_LOGI(TAG, "Initializing SD card");
 
     // Use settings defined above to initialize SD card and mount FAT filesystem.
@@ -38,8 +45,6 @@ esp_err_t sd_init(camera_fb_t *fb){
     // production applications.
     ESP_LOGI(TAG, "Using SPI peripheral");
 
-    // Default structure initializer for SD over SPI driver
-    sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 
     // initialise spi bus config
     spi_bus_config_t spi_bus_cfg = {
@@ -80,25 +85,59 @@ esp_err_t sd_init(camera_fb_t *fb){
 
     // Card has been initialized, print its properties
     sdmmc_card_print_info(stdout, card);
+   
+    return ret;
+}
 
-    // Use POSIX and C standard library functions to work with files.
-
-    const char *file = FILE_NAME;
-    ESP_LOGI(TAG,"File created");
-    ret = write_arr(file, fb);
-
-    // error check if file was not written correctly
-    if (ret != ESP_OK) {
-        return ret;
-    }
-
+esp_err_t sd_deinit(){
     // All done, unmount partition and disable SPI peripheral
     esp_vfs_fat_sdcard_unmount(mount_point, card);
     ESP_LOGI(TAG, "Card unmounted");
 
-    //deinitialize the bus after all devices are removed
+    // Deinitialize the bus after all devices are removed
     spi_bus_free(host.slot);
-
-    return ret;
+    return ESP_OK; 
 }
 
+esp_err_t read_wifi_credentials(){
+
+    // Initialise arrays with ACII null escape character \0
+    memset(sd_ssid, '\0', sizeof(sd_ssid));
+    memset(sd_pswd, '\0', sizeof(sd_pswd));
+
+    const char *path = WIFICRED_FILE_NAME;
+    ESP_LOGI(TAG, "Reading file %s", path);
+    FILE *f = fopen(path, "r");
+    if (f == NULL) {
+        ESP_LOGE(TAG, "Failed to open file for reading");
+        return ESP_FAIL;
+    }
+
+    fgets(sd_ssid, sizeof(sd_ssid), f);
+    fgets(sd_pswd, sizeof(sd_pswd), f);
+    fclose(f);
+
+    // Pointer to the character locations. used to strip the \n and \r in the strings
+    char *pos;
+    pos = strchr(sd_ssid, '\r');
+    if (pos) {
+        *pos = '\0';
+    }
+    pos = strchr(sd_ssid, '\n');
+    if (pos) {
+        *pos = '\0';
+    }
+    pos = strchr(sd_pswd, '\r');
+    if (pos) {
+        *pos = '\0';
+    }
+    pos = strchr(sd_pswd, '\n');
+    if (pos) {
+        *pos = '\0';
+    }
+
+    ESP_LOGI(TAG, "SSID from file: '%s'", sd_ssid);
+    ESP_LOGI(TAG, "Pswd from file: '%s'", sd_pswd);
+
+    return ESP_OK;
+}

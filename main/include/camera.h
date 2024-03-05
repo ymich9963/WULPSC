@@ -31,17 +31,17 @@
 /**
  * @brief Used to set up the flash LED on the ESP
 */
-void setup_flash();
+esp_err_t setup_flash();
 
 /**
  * @brief Turn on the flash
 */
-void turn_on_flash();
+esp_err_t turn_on_flash();
 
 /**
  * @brief Turn off the flash
 */
-void turn_off_flash();
+esp_err_t turn_off_flash();
 
 /**
  * @brief Output data from the picture taken

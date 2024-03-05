@@ -20,7 +20,7 @@ esp_err_t get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-static size_t jpg_encode_stream(void * arg, size_t index, const void* data, size_t len){
+size_t jpg_encode_stream(void * arg, size_t index, const void* data, size_t len){
     jpg_chunking_t *j = (jpg_chunking_t *)arg;
     if(!index){
         j->len = 0;
@@ -32,14 +32,15 @@ static size_t jpg_encode_stream(void * arg, size_t index, const void* data, size
     return len;
 }
 
-esp_err_t jpg_httpd_handler(httpd_req_t *req){
+esp_err_t picture_handler(httpd_req_t *req){
     esp_err_t res = ESP_OK;
     esp_err_t ret = ESP_OK;
 
     // if frame buffer null
     if(!fb){
         fb = fb_refresh(fb);
-        fb = esp_camera_fb_get();
+        fb = sys_take_picture(sys_config);
+        sys_sd_save_check(sys_config, fb);
         ESP_LOGI(TAG,"Took new picture.");
         pic_data_output(fb);
     }
@@ -69,7 +70,7 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
             ESP_LOGI(TAG, "Response Sent in chunks");
         }
         if(ret==ESP_OK){
-            sys_config.pic_taken = true;
+            sys_config.pic_poll = true;
         }
     }
     esp_camera_fb_return(fb);
@@ -78,8 +79,8 @@ esp_err_t jpg_httpd_handler(httpd_req_t *req){
     return res;
 }
 
-esp_err_t done_handler(httpd_req_t *req){
-    sys_config.done = 1;
+esp_err_t exit_handler(httpd_req_t *req){
+    sys_config.exit = 1;
     return ESP_OK;
 }
 
@@ -92,7 +93,7 @@ esp_err_t cam1_handler(httpd_req_t *req){
 
     esp_err_t ret;
     
-    ret = jpg_httpd_handler(req);
+    ret = picture_handler(req);
     if(ret != ESP_OK){
         ESP_LOGW(TAG, "JPEG Handler returned badly");
     }
@@ -114,12 +115,12 @@ esp_err_t cam2_handler(httpd_req_t *req){
     esp_err_t ret;
     
     ESP_LOGI(TAG, "Waiting for first picture to finish sending.");
-    while(!sys_config.pic_taken){
+    while(!sys_config.pic_poll){
         vTaskDelay(10/portTICK_PERIOD_MS);
     }
     
 
-    ret = jpg_httpd_handler(req);
+    ret = picture_handler(req);
     if(ret != ESP_OK){
         ESP_LOGW(TAG, "JPEG Handler returned badly");
     }
@@ -188,17 +189,17 @@ httpd_uri_t uri_get = {
     .user_ctx = NULL
 };
 
-httpd_uri_t jpg_get = {
-    .uri      = "/jpg",
+httpd_uri_t pic_get = {
+    .uri      = "/pic",
     .method   = HTTP_GET,
-    .handler  = jpg_httpd_handler,
+    .handler  = picture_handler,
     .user_ctx = NULL
 };
 
-httpd_uri_t done_get = {
-    .uri      = "/done",
+httpd_uri_t exit_get = {
+    .uri      = "/exit",
     .method   = HTTP_GET,
-    .handler  = done_handler,
+    .handler  = exit_handler,
     .user_ctx = NULL
 };
 
@@ -248,8 +249,8 @@ httpd_handle_t start_webserver(void)
 
         // GET
         httpd_register_uri_handler(server, &uri_get);   // simple handler for testing
-        httpd_register_uri_handler(server, &jpg_get);   // to get the image
-        httpd_register_uri_handler(server, &done_get);  // to exit main loop and shutdown
+        httpd_register_uri_handler(server, &pic_get);   // to get the image
+        httpd_register_uri_handler(server, &exit_get);  // to exit main loop and shutdown
         httpd_register_uri_handler(server, &cam1_get);  // camera 1 handler
         httpd_register_uri_handler(server, &cam2_get);  // camera 2 handler
 

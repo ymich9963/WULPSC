@@ -160,3 +160,58 @@ system_config_t JSON_config_set(char* content, system_config_t sys_config){
 
     return sys_config;     
 }
+
+esp_err_t sys_sd_save_check(system_config_t sys_config, camera_fb_t* fb){
+    esp_err_t ret;
+    const char* file = PIC_FILE_NAME; //!TODO: Concatinate file path with time for new file names each time
+    switch (sys_config.sd_save){
+    case NO_SD:
+        ret = sd_deinit();
+
+        if(ret != ESP_OK){
+            ESP_LOGW(TAG, "Error with SD de-init");
+            return ESP_FAIL;
+        }
+
+        return ESP_OK;
+        break;
+    case SD_OK:
+        sys_config.sd_save = SD_SAVE;
+        return ESP_OK;
+        break;
+    case SD_SAVE:
+        ret = sd_write_arr(file, fb);
+
+        // error check if file was not written correctly
+        if (ret != ESP_OK){
+            return ESP_FAIL;
+            ESP_LOGW(TAG, "File not written correctly");
+        }
+
+        return ESP_OK;
+        break;
+    default:
+        return ESP_FAIL;
+        break;
+    } 
+}
+
+camera_fb_t* sys_take_picture(system_config_t sys_config){
+    camera_fb_t* fb;
+    switch (sys_config.flash){
+    case false:
+        fb = esp_camera_fb_get();
+        return fb;
+        break;
+    case true:
+        turn_on_flash();
+        fb = esp_camera_fb_get();
+        turn_off_flash();
+        return fb;
+        break;
+    default:
+        fb = NULL;
+        return fb;
+        break;
+    }
+}
