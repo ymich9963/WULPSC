@@ -2,9 +2,9 @@
 #define HTTP_H
 
 #include "esp_http_server.h"
+#include "system_config.h"
 #include "esp_err.h"
 #include "esp_log.h"
-#include "system_config.h"
 #include "camera.h"
 #include "sd.h"
 

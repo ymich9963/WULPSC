@@ -2,6 +2,15 @@
 
 const char * TAG = "WULPSC - Config";
 
+/* 8-bit random number */
+uint16_t rnd;
+
+/* String var to store 16-bit random number (up to 65536,  i.e. 6 bytes + 1)  */
+char rnd_str[6] = "\0";
+
+/* 22+1 bytes max length file path */
+char path[20] = "\0";
+
 esp_err_t camera_set_settings(system_config_t sys_config){
 
     // settings with values
@@ -161,10 +170,9 @@ system_config_t JSON_config_set(char* content, system_config_t sys_config){
     return sys_config;     
 }
 
-esp_err_t sys_sd_save_check(system_config_t sys_config, camera_fb_t* fb){
+esp_err_t sys_sd_save_check(system_config_t* sys_config, camera_fb_t* fb){
     esp_err_t ret;
-    const char* file = PIC_FILE_NAME; //!TODO: Concatinate file path with time for new file names each time
-    switch (sys_config.sd_save){
+    switch (sys_config->sd_save){
     case NO_SD:
         ret = sd_deinit();
 
@@ -175,17 +183,39 @@ esp_err_t sys_sd_save_check(system_config_t sys_config, camera_fb_t* fb){
 
         return ESP_OK;
         break;
-    case SD_OK:
-        sys_config.sd_save = SD_SAVE;
+    case SD_SAVE:
+        sys_config->sd_save = SD_SAVING;
+
+        // to reduce file size when saving
+        change_pixformat_to_jpeg();
+
+        esp_fill_random(&rnd, sizeof(rnd));
+        sprintf(rnd_str,"%u", rnd);
+
+        ESP_LOGI(TAG, "SD Ready for saving!");
         return ESP_OK;
         break;
-    case SD_SAVE:
-        ret = sd_write_arr(file, fb);
+    case SD_SAVING:
+        strcpy(path,MOUNT_POINT"/");
+
+        strcat(path, rnd_str);
+
+        switch (sys_config->active_cam)
+        {
+        case 0:
+            strcat(path, "L.jpg");
+            break;
+        case 1:
+            strcat(path, "R.jpg");
+        default:
+            break;
+        }
+        ret = sd_write_arr(path, fb);
 
         // error check if file was not written correctly
         if (ret != ESP_OK){
-            return ESP_FAIL;
             ESP_LOGW(TAG, "File not written correctly");
+            return ESP_FAIL;
         }
 
         return ESP_OK;
@@ -214,4 +244,57 @@ camera_fb_t* sys_take_picture(system_config_t sys_config){
         return fb;
         break;
     }
+}
+
+esp_err_t sys_camera_switch(system_config_t sys_config){
+    esp_err_t ret;
+    
+    // de-initialise 
+    ret = esp_camera_deinit();
+    if(ret != ESP_OK){
+        ESP_LOGW(TAG, "De-init returned badly");
+    }
+
+    // power down?
+    gpio_set_level(CAM_PIN_PWDN, 0);
+    if(ret != ESP_OK){
+        ESP_LOGW(TAG, "GPIO set level returned badly");
+    }
+    vTaskDelay(10/portTICK_PERIOD_MS);
+
+    // CHANGE SELECT PINS HERE!!!!!
+    // ESP_LOGI(TAG, "CHANGE THE SELECT PIN NOW!!!! 10s");
+    // vTaskDelay(10000/portTICK_PERIOD_MS);
+    
+    switch (sys_config.active_cam){
+    case 0:
+        gpio_set_level(SEL_PIN, 0);
+        break;
+    case 1:
+        gpio_set_level(SEL_PIN, 1);
+        break;
+    default:
+        ESP_LOGW(TAG,"Entered default case in cam_switched(). Reset to 0");
+        sys_config.active_cam = 0;
+        break;
+    }
+
+    // power up!
+    gpio_set_level(CAM_PIN_PWDN, 1);
+    if(ret != ESP_OK){
+        ESP_LOGW(TAG, "GPIO set level returned badly");
+    }
+    vTaskDelay(10/portTICK_PERIOD_MS);
+
+    // initialise
+    ret = init_camera();
+    if(ret != ESP_OK){
+        ESP_LOGW(TAG, "Camera init returned badly");
+    }
+
+    // set settings again
+    sys_config.sensor = esp_camera_sensor_get();
+    camera_set_settings(sys_config);
+
+    return ESP_OK;
 }

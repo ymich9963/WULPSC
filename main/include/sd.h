@@ -27,7 +27,6 @@
 
 // Folder to mount at
 #define MOUNT_POINT "/sdcard"
-#define PIC_FILE_NAME MOUNT_POINT"/img.jpg"
 #define WIFICRED_FILE_NAME MOUNT_POINT"/wificred.txt" 
 #define MAX_CHAR_LINE 30
 

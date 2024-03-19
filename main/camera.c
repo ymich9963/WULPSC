@@ -51,6 +51,10 @@ esp_err_t init_camera(){
     return ESP_OK;
 }
 
+void change_pixformat_to_jpeg(){
+    camera_config.pixel_format = PIXFORMAT_JPEG;
+}
+
 esp_err_t setup_flash(){
     ESP_ERROR_CHECK(gpio_set_level(CAM_PIN_FLASH,0)); //initialise to 0 so to not blink twice
     return gpio_set_direction(CAM_PIN_FLASH,GPIO_MODE_OUTPUT);
@@ -74,58 +78,7 @@ void pic_data_output(camera_fb_t *fb){
     ESP_LOGI(TAG, "-----------------------"); 
 }
 
-esp_err_t camera_switch(bool cam_switched){
-    esp_err_t ret;
-    
-    // de-initialise 
-    ret = esp_camera_deinit();
-    if(ret != ESP_OK){
-        ESP_LOGW(TAG, "De-init returned badly");
-    }
 
-    // power down?
-    gpio_set_level(GPIO_NUM_32, 0);
-    if(ret != ESP_OK){
-        ESP_LOGW(TAG, "GPIO set level returned badly");
-    }
-    vTaskDelay(10/portTICK_PERIOD_MS);
-
-    // CHANGE SELECT PINS HERE!!!!!
-    ESP_LOGI(TAG, "CHANGE THE SELECT PIN NOW!!!! 10s");
-    vTaskDelay(10000/portTICK_PERIOD_MS);
-    // switch (cam_switched){
-    // case 0:
-    //     /* code for setting GPIO low */
-    //     break;
-    // case 1:
-    //     /* code for setting GPIO high */
-    //     break;
-    // default:
-    //     ESP_LOGW(TAG,"Entered default case in cam_switched(). Reset to 0");
-    //     cam_switched = 0;
-    //     break;
-    // }
-    ///////////////////////////////////
-
-    // power up!
-    gpio_set_level(CAM_PIN_PWDN, 1);
-    if(ret != ESP_OK){
-        ESP_LOGW(TAG, "GPIO set level returned badly");
-    }
-    vTaskDelay(10/portTICK_PERIOD_MS);
-
-    // initialise
-    ret = init_camera();
-    if(ret != ESP_OK){
-        ESP_LOGW(TAG, "Camera init returned badly");
-    }
-
-    // set settings again
-    // sys_config.sensor = esp_camera_sensor_get();
-    // camera_set_settings(sys_config);
-
-    return ESP_OK;
-}
 
 
 camera_fb_t* fb_refresh(camera_fb_t * fb){

@@ -10,16 +10,15 @@
 #include "nvs_flash.h"
 #include "sd.h"
 
-#define SD_CRED    1 
+#define SD_CRED    0 
     #if !SD_CRED
         #define ESP_WIFI_SSID      "plus"
         #define ESP_WIFI_PASS      "abcde123"
     #endif
 
-#define ESP_MAXIMUM_RETRY  5
+#define ESP_MAXIMUM_RETRY  3
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
-#define DEFAULT_SCAN_LIST_SIZE 5
 
 
 /**
@@ -40,9 +39,10 @@ void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, voi
 
 /**
  * @brief Initialise Station Mode
+ * 
+ * @return ESP_OK on success, ESP_FAIL on failing to connect to the WiFi network
 */
-void wifi_init_sta(void);
-
+esp_err_t wifi_init_sta(void);
 
 
 #endif

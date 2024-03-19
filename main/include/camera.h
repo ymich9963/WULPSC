@@ -24,9 +24,12 @@
 #define CAM_PIN_PCLK 22
 #define CAM_PIN_FLASH 4
 
+
 #include "esp_camera.h"
 #include "esp_log.h"
-#include "http.h"
+#include "system_config.h"
+
+
 
 /**
  * @brief Used to set up the flash LED on the ESP
@@ -57,14 +60,8 @@ void pic_data_output(camera_fb_t *fb);
 */
 esp_err_t init_camera();
 
-/**
- * @brief Switch the cameras. Used in the HTTP GET handlers
- * 
- * @param cam_switched to check if the cameras have already been switched
- * 
- * @return ESP_OK on success
-*/
-esp_err_t camera_switch(bool cam_switched);
+
+void change_pixformat_to_jpeg();
 
 /**
  * @brief Refresh the frame buffer by taking a pic a discarding it

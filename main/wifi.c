@@ -88,7 +88,7 @@ void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, voi
 }
 
 
-void wifi_init_sta(void)
+esp_err_t wifi_init_sta(void)
 {
     esp_err_t ret;
 
@@ -122,8 +122,8 @@ void wifi_init_sta(void)
 #endif
 
 
-    ESP_LOGI(TAG, "Detected SSID: |%s|", wifi_config.sta.ssid);
-    ESP_LOGI(TAG, "Detected Password: |%s|", wifi_config.sta.password);
+    ESP_LOGI(TAG, "Detected SSID: %s", wifi_config.sta.ssid);
+    ESP_LOGI(TAG, "Detected Password: %s", wifi_config.sta.password);
 
     // set credentials and try to connect
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &wifi_config));
@@ -132,7 +132,7 @@ void wifi_init_sta(void)
     if(ret != ESP_OK)
     {
         ESP_LOGE(TAG, "Error with Wi-Fi connection");
-        return;
+        return ESP_FAIL;
     }
 
     /* Waiting until either the connection is established (WIFI_CONNECTED_BIT) or connection failed for the maximum
@@ -143,9 +143,12 @@ void wifi_init_sta(void)
     /* xEventGroupWaitBits() returns the bits before the call returned, hence we can test which event actually happened. */
     if (bits & WIFI_CONNECTED_BIT) {
         ESP_LOGI(TAG, "connected to Access Point SSID:%s password:%s", wifi_config.sta.ssid, wifi_config.sta.password);
+        return ESP_OK;
     } else if (bits & WIFI_FAIL_BIT) {
-        ESP_LOGI(TAG, "Failed to connect to SSID:%s, password:%s", wifi_config.sta.ssid, wifi_config.sta.password);
+        ESP_LOGW(TAG, "Failed to connect to SSID:%s, password:%s", wifi_config.sta.ssid, wifi_config.sta.password);
+        return ESP_FAIL;
     } else {
         ESP_LOGE(TAG, "UNEXPECTED EVENT");
+        return ESP_FAIL;
     }
 }

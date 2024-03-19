@@ -40,7 +40,7 @@ esp_err_t picture_handler(httpd_req_t *req){
     if(!fb){
         fb = fb_refresh(fb);
         fb = sys_take_picture(sys_config);
-        sys_sd_save_check(sys_config, fb);
+        sys_sd_save_check(&sys_config, fb);
         ESP_LOGI(TAG,"Took new picture.");
         pic_data_output(fb);
     }
@@ -84,21 +84,21 @@ esp_err_t exit_handler(httpd_req_t *req){
     return ESP_OK;
 }
 
-esp_err_t cam1_handler(httpd_req_t *req){
+esp_err_t cam0_handler(httpd_req_t *req){
     /* 
-       handler takes a picture then de-initialises and powers down the camera
+       Handler takes a picture then de-initialises and powers down the camera
        after the MUXs are switched it will power up, re-initialise the second camera
        to have it ready for the next GET request
     */
-
     esp_err_t ret;
-    
+
     ret = picture_handler(req);
     if(ret != ESP_OK){
         ESP_LOGW(TAG, "JPEG Handler returned badly");
     }
-    
-    ret = camera_switch(sys_config.cam_switched);
+
+    sys_config.active_cam = 0;    
+    ret = sys_camera_switch(sys_config);
     if(ret != ESP_OK){
         ESP_LOGE(TAG, "Camera switch returned badly");
     }
@@ -106,7 +106,7 @@ esp_err_t cam1_handler(httpd_req_t *req){
     return ret;
 }
 
-esp_err_t cam2_handler(httpd_req_t *req){
+esp_err_t cam1_handler(httpd_req_t *req){
     /* 
        handler for the second camera. takes the picture but does not switch back.
        checks if pic is taken before also taking a pic.
@@ -125,7 +125,8 @@ esp_err_t cam2_handler(httpd_req_t *req){
         ESP_LOGW(TAG, "JPEG Handler returned badly");
     }
 
-    ret = camera_switch(sys_config.cam_switched);
+    sys_config.active_cam = 1;
+    ret = sys_camera_switch(sys_config);
     if(ret != ESP_OK){
         ESP_LOGE(TAG, "Camera switch returned badly");
     }
@@ -203,17 +204,17 @@ httpd_uri_t exit_get = {
     .user_ctx = NULL
 };
 
+httpd_uri_t cam0_get = {
+    .uri      = "/cam0",
+    .method   = HTTP_GET,
+    .handler  = cam0_handler,
+    .user_ctx = NULL
+};
+
 httpd_uri_t cam1_get = {
     .uri      = "/cam1",
     .method   = HTTP_GET,
     .handler  = cam1_handler,
-    .user_ctx = NULL
-};
-
-httpd_uri_t cam2_get = {
-    .uri      = "/cam2",
-    .method   = HTTP_GET,
-    .handler  = cam2_handler,
     .user_ctx = NULL
 };
 
@@ -251,8 +252,8 @@ httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &uri_get);   // simple handler for testing
         httpd_register_uri_handler(server, &pic_get);   // to get the image
         httpd_register_uri_handler(server, &exit_get);  // to exit main loop and shutdown
-        httpd_register_uri_handler(server, &cam1_get);  // camera 1 handler
-        httpd_register_uri_handler(server, &cam2_get);  // camera 2 handler
+        httpd_register_uri_handler(server, &cam0_get);  // camera 1 handler
+        httpd_register_uri_handler(server, &cam1_get);  // camera 2 handler
 
         // POST
         httpd_register_uri_handler(server, &config_settings_post); // change camera settings

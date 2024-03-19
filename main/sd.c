@@ -12,7 +12,8 @@ sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 
 esp_err_t sd_write_arr(const char *path, camera_fb_t *fb){
     size_t ret;
-    ESP_LOGI(TAG, "Opening file %s", path);
+
+    ESP_LOGI(TAG, "Opening file |%s|", path);
     FILE *f = fopen(path, "wb");
     if (f == NULL) {
         ESP_LOGE(TAG, "Failed to open file for writing");
@@ -33,7 +34,7 @@ esp_err_t sd_init(){
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
         .format_if_mount_failed = true,
         .max_files = 10,
-        .allocation_unit_size = 16 * 1024
+        .allocation_unit_size = 16 * 1024   // for 16 GB
     };
 
     

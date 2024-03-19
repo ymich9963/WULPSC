@@ -1,16 +1,21 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#include "camera.h"
-#include "http.h"
+#include "esp_camera.h"
 #include "esp_err.h"
 #include "cJSON.h"
+#include "esp_random.h"
+#include "sd.h"
+#include "camera.h"
+
+// Pin to change MUX
+#define SEL_PIN 3
 
 /* States used for checking the SD configuration */
 typedef enum{
     NO_SD,
-    SD_OK,
-    SD_SAVE
+    SD_SAVE,
+    SD_SAVING
 }sd_state_t;
 
 /* System Configuration structure. Stores all system settings */
@@ -19,7 +24,7 @@ typedef struct{
     bool flash;
     bool exit;
     bool pic_poll;
-    bool cam_switched;
+    bool active_cam;
     sensor_t* sensor;
     camera_status_t camera;
 }system_config_t;
@@ -61,7 +66,7 @@ system_config_t JSON_config_set(char* content, system_config_t sys_config);
  * 
  * @return ESP_OK
 */
-esp_err_t sys_sd_save_check(system_config_t sys_config, camera_fb_t* fb);
+esp_err_t sys_sd_save_check(system_config_t* sys_config, camera_fb_t* fb);
 
 
 /**
@@ -73,5 +78,14 @@ esp_err_t sys_sd_save_check(system_config_t sys_config, camera_fb_t* fb);
 */
 camera_fb_t* sys_take_picture(system_config_t sys_config);
 
+
+/**
+ * @brief Switch the cameras. Used in the HTTP GET handlers
+ * 
+ * @param sys_config the system config variable
+ * 
+ * @return ESP_OK on success
+*/
+esp_err_t sys_camera_switch(system_config_t sys_config);
 
 #endif
