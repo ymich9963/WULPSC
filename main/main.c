@@ -71,11 +71,15 @@ void app_main(void)
      * Setup the GPIO pin to change the value of the SEL pin of the MUXs, initialised to 0
      * */
     gpio_set_direction(SEL_PIN, GPIO_MODE_OUTPUT);
-    gpio_set_level(SEL_PIN, 1);
+    gpio_set_level(SEL_PIN, 0);    
+    
+    // Setup the flash LED
+    setup_flash();
 
     /* Initialise the camera */
     ret = init_camera();
     if(ret != ESP_OK){
+        turn_on_flash(); // to signify error with cameras
         return;
     }
     
@@ -83,8 +87,7 @@ void app_main(void)
     sys_config.sensor = esp_camera_sensor_get();
     camera_set_settings(sys_config);  
 
-    // Setup the flash LED
-    setup_flash();
+
 
     /* Refresh picture to make sure the latest image is received */
     fb = fb_refresh(fb);

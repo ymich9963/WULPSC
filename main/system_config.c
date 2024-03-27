@@ -268,10 +268,10 @@ esp_err_t sys_camera_switch(system_config_t sys_config){
     
     switch (sys_config.active_cam){
     case 0:
-        gpio_set_level(SEL_PIN, 0);
+        gpio_set_level(SEL_PIN, 1);
         break;
     case 1:
-        gpio_set_level(SEL_PIN, 1);
+        gpio_set_level(SEL_PIN, 0);
         break;
     default:
         ESP_LOGW(TAG,"Entered default case in cam_switched(). Reset to 0");

@@ -119,6 +119,8 @@ esp_err_t cam1_handler(httpd_req_t *req){
         vTaskDelay(10/portTICK_PERIOD_MS);
     }
     
+    // Reset polling
+    sys_config.pic_poll = false;
 
     ret = picture_handler(req);
     if(ret != ESP_OK){

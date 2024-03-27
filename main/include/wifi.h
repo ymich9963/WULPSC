@@ -10,7 +10,7 @@
 #include "nvs_flash.h"
 #include "sd.h"
 
-#define SD_CRED    0 
+#define SD_CRED    1 
     #if !SD_CRED
         #define ESP_WIFI_SSID      "plus"
         #define ESP_WIFI_PASS      "abcde123"

@@ -9,7 +9,7 @@
 #include "camera.h"
 
 // Pin to change MUX
-#define SEL_PIN 3
+#define SEL_PIN 2
 
 /* States used for checking the SD configuration */
 typedef enum{
