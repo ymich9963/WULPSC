@@ -1,7 +1,0 @@
-.vscode/
-build/
-sdkconfig.old
-managed_components/
-
-# Vim file extensions
-*.*~
