@@ -1,7 +1,0 @@
-MMC/.vscode/
-WUC/.vscode/
-MMC/build/
-WUC/build/
-MMC/dependencies.lock/
-WUC/dependencies.lock/
-MMC/managed_components
