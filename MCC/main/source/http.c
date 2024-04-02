@@ -2,7 +2,7 @@
 
 static const char *TAG = "WULPSC - http protocol";
 extern camera_fb_t * fb;
-extern mmc_config_t mmc_config;
+extern mcc_config_t mcc_config;
 
 typedef struct {
         httpd_req_t *req;
@@ -39,8 +39,8 @@ esp_err_t picture_handler(httpd_req_t *req){
     // if frame buffer null
     if(!fb){
         fb = fb_refresh(fb);
-        fb = sys_take_picture(mmc_config);
-        sys_sd_save_check(&mmc_config, fb);
+        fb = sys_take_picture(mcc_config);
+        sys_sd_save_check(&mcc_config, fb);
         ESP_LOGI(TAG,"Took new picture.");
         pic_data_output(fb);
     }
@@ -70,7 +70,7 @@ esp_err_t picture_handler(httpd_req_t *req){
             ESP_LOGI(TAG, "Response Sent in chunks");
         }
         if(ret==ESP_OK){
-            mmc_config.pic_poll = true;
+            mcc_config.pic_poll = true;
         }
     }
     esp_camera_fb_return(fb);
@@ -80,7 +80,7 @@ esp_err_t picture_handler(httpd_req_t *req){
 }
 
 esp_err_t exit_handler(httpd_req_t *req){
-    mmc_config.exit = 1;
+    mcc_config.exit = 1;
     return ESP_OK;
 }
 
@@ -97,8 +97,8 @@ esp_err_t cam0_handler(httpd_req_t *req){
         ESP_LOGW(TAG, "JPEG Handler returned badly");
     }
 
-    mmc_config.active_cam = 0;    
-    ret = sys_camera_switch(mmc_config);
+    mcc_config.active_cam = 0;    
+    ret = sys_camera_switch(mcc_config);
     if(ret != ESP_OK){
         ESP_LOGE(TAG, "Camera switch returned badly");
     }
@@ -115,20 +115,20 @@ esp_err_t cam1_handler(httpd_req_t *req){
     esp_err_t ret;
     
     ESP_LOGI(TAG, "Waiting for first picture to finish sending.");
-    while(!mmc_config.pic_poll){
+    while(!mcc_config.pic_poll){
         vTaskDelay(10/portTICK_PERIOD_MS);
     }
     
     // Reset polling
-    mmc_config.pic_poll = false;
+    mcc_config.pic_poll = false;
 
     ret = picture_handler(req);
     if(ret != ESP_OK){
         ESP_LOGW(TAG, "JPEG Handler returned badly");
     }
 
-    mmc_config.active_cam = 1;
-    ret = sys_camera_switch(mmc_config);
+    mcc_config.active_cam = 1;
+    ret = sys_camera_switch(mcc_config);
     if(ret != ESP_OK){
         ESP_LOGE(TAG, "Camera switch returned badly");
     }
@@ -172,9 +172,9 @@ esp_err_t config_settings_post_handler(httpd_req_t *req){
     content[recv_size] = '\0';
 	
 
-    mmc_config = JSON_config_set(content, mmc_config);
-    mmc_config.sensor = esp_camera_sensor_get();
-    camera_set_settings(mmc_config);
+    mcc_config = JSON_config_set(content, mcc_config);
+    mcc_config.sensor = esp_camera_sensor_get();
+    camera_set_settings(mcc_config);
 
     
     const char resp[] = "Paramaters set";

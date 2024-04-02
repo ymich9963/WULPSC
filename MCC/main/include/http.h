@@ -2,7 +2,7 @@
 #define HTTP_H
 
 #include "esp_http_server.h"
-#include "mmc_config.h"
+#include "mcc_config.h"
 #include "esp_err.h"
 #include "esp_log.h"
 #include "camera.h"

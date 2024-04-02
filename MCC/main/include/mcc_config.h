@@ -27,65 +27,65 @@ typedef struct{
     bool active_cam;
     sensor_t* sensor;
     camera_status_t camera;
-}mmc_config_t;
+}mcc_config_t;
 
 
 
 /**
  * @brief Takes all camera variables in the system config and sets them
  * 
- * @param mmc_config the system config variable
+ * @param mcc_config the system config variable
  * 
  * @return ESP_OK on success
 */
-esp_err_t camera_set_settings(mmc_config_t mmc_config);
+esp_err_t camera_set_settings(mcc_config_t mcc_config);
 
 /**
  * @brief Used for debugging the camera sensor settings
  * 
- * @param mmc_config the system config variable
+ * @param mcc_config the system config variable
 */
-void camera_get_settings(mmc_config_t mmc_config);
+void camera_get_settings(mcc_config_t mcc_config);
 
 /**
  * @brief Uses the content received and parses it to the corresponding system config variables
  * 
  * @param content pointer to the JSON string
- * @param mmc_config the system config variable
+ * @param mcc_config the system config variable
  * 
- * @return variable of type mmc_config, i.e. the system config variable
+ * @return variable of type mcc_config, i.e. the system config variable
 */
-mmc_config_t JSON_config_set(char* content, mmc_config_t mmc_config);
+mcc_config_t JSON_config_set(char* content, mcc_config_t mcc_config);
 
 
 /**
  * @brief Checks SD configuration and saves the image if appropriate
  * 
- * @param mmc_config the system config variable
+ * @param mcc_config the system config variable
  * @param fb camera frame buffer
  * 
  * @return ESP_OK
 */
-esp_err_t sys_sd_save_check(mmc_config_t* mmc_config, camera_fb_t* fb);
+esp_err_t sys_sd_save_check(mcc_config_t* mcc_config, camera_fb_t* fb);
 
 
 /**
  * @brief Take a picture. Used to check if picture should be taken with flash or not
  * 
- * @param mmc_config the system config variable
+ * @param mcc_config the system config variable
  * 
  * @return camera frame buffer
 */
-camera_fb_t* sys_take_picture(mmc_config_t mmc_config);
+camera_fb_t* sys_take_picture(mcc_config_t mcc_config);
 
 
 /**
  * @brief Switch the cameras. Used in the HTTP GET handlers
  * 
- * @param mmc_config the system config variable
+ * @param mcc_config the system config variable
  * 
  * @return ESP_OK on success
 */
-esp_err_t sys_camera_switch(mmc_config_t mmc_config);
+esp_err_t sys_camera_switch(mcc_config_t mcc_config);
 
 #endif

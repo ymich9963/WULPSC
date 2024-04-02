@@ -3,7 +3,7 @@
 #include "camera.h"
 
 static const char *TAG = "WULPSC - Camera";
-extern mmc_config_t mmc_config;
+extern mcc_config_t mcc_config;
 
 // declare the camera configuration
 camera_config_t camera_config = {

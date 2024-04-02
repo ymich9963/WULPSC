@@ -5,7 +5,7 @@
 #ifndef CAM_H
 #define CAM_H
 
-/* Camera definitions for ESP32-CAM mmc_config */
+/* Camera definitions for ESP32-CAM mcc_config */
 #define CAM_PIN_PWDN 32
 #define CAM_PIN_RESET -1 //software reset will be performed
 #define CAM_PIN_XCLK 0
@@ -27,7 +27,7 @@
 
 #include "esp_camera.h"
 #include "esp_log.h"
-#include "mmc_config.h"
+#include "mcc_config.h"
 
 
 

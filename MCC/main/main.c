@@ -5,12 +5,12 @@
 #include "sd.h"
 #include "wifi.h"
 #include "http.h"
-#include "mmc_config.h"
+#include "mcc_config.h"
 
 static const char *TAG = "WULPSC";
 
 camera_fb_t* fb = NULL;
-mmc_config_t mmc_config = {
+mcc_config_t mcc_config = {
     .exit           =   false,
     .flash          =   false,
     .sd_save        =   NO_SD,
@@ -61,7 +61,7 @@ void app_main(void)
     read_wifi_credentials();
 #endif
     // Checks if SD should be de-initialised
-    sys_sd_save_check(&mmc_config, fb);
+    sys_sd_save_check(&mcc_config, fb);
 
     /* Initialise WiFi */
     wifi_init_general();
@@ -84,8 +84,8 @@ void app_main(void)
     }
     
     /* Set sensor, and set to default values */
-    mmc_config.sensor = esp_camera_sensor_get();
-    camera_set_settings(mmc_config);  
+    mcc_config.sensor = esp_camera_sensor_get();
+    camera_set_settings(mcc_config);  
 
 
 
@@ -93,7 +93,7 @@ void app_main(void)
     fb = fb_refresh(fb);
 
     ESP_LOGI(TAG, "Taking picture...");
-    fb = sys_take_picture(mmc_config); 
+    fb = sys_take_picture(mcc_config); 
     if(fb){
         ESP_LOGI(TAG, "Picture taken!");
     }else{
@@ -101,13 +101,13 @@ void app_main(void)
     }
 
     /* Display settings to console for debugging */
-    // camera_get_settings(mmc_config);
+    // camera_get_settings(mcc_config);
 
     /* Display picture data for debugging */
     pic_data_output(fb);
 
     // Check if image should be saved
-    sys_sd_save_check(&mmc_config, fb);
+    sys_sd_save_check(&mcc_config, fb);
         
     /* Only create a HTTP server if a WiFi connection was established */
     if(wifi_ret == ESP_OK){
@@ -121,7 +121,7 @@ void app_main(void)
         while(server){
             // ESP_LOGI(TAG, "Entered server loop");
             vTaskDelay(10/portTICK_PERIOD_MS);
-            if(mmc_config.exit){
+            if(mcc_config.exit){
                 ESP_LOGI(TAG, "Server Stopping");
                 stop_webserver(server);
                 server = NULL;
@@ -134,32 +134,32 @@ void app_main(void)
          * If SD saving is not enabled, enable it in order to allow for partial monitoring,
          * If SD saving is enabled, then image was saved from before.
          * */ 
-        if(mmc_config.sd_save == NO_SD){
+        if(mcc_config.sd_save == NO_SD){
 
             // Setup SD saving
-            mmc_config.sd_save = SD_SAVE;
-            sys_sd_save_check(&mmc_config, fb);
+            mcc_config.sd_save = SD_SAVE;
+            sys_sd_save_check(&mcc_config, fb);
 
             // Call the function again to save the image
-            sys_sd_save_check(&mmc_config, fb);
+            sys_sd_save_check(&mcc_config, fb);
 
             // // Set the active camera and switch
-            // mmc_config.active_cam = 0;    
-            // ret = sys_camera_switch(mmc_config);
+            // mcc_config.active_cam = 0;    
+            // ret = sys_camera_switch(mcc_config);
             // if(ret != ESP_OK){
             //     ESP_LOGE(TAG, "Camera switch returned badly");
             // }
 
             // /* Get sensor data again and set the settings */
-            // mmc_config.sensor = esp_camera_sensor_get();
-            // camera_set_settings(mmc_config);  
+            // mcc_config.sensor = esp_camera_sensor_get();
+            // camera_set_settings(mcc_config);  
 
             // /* Refresh picture to make sure the latest image is received */
             // fb = fb_refresh(fb);
 
             // /* Take a new image */
             // ESP_LOGI(TAG, "Taking picture...");
-            // fb = sys_take_picture(mmc_config); 
+            // fb = sys_take_picture(mcc_config); 
             // if(fb){
             //     ESP_LOGI(TAG, "Picture taken!");
             // }else{
@@ -167,7 +167,7 @@ void app_main(void)
             // }
 
             // /* Save again */
-            // sys_sd_save_check(&mmc_config, fb);
+            // sys_sd_save_check(&mcc_config, fb);
         }
     }
 
@@ -176,7 +176,7 @@ void app_main(void)
     esp_camera_deinit();
     ESP_LOGI(TAG, "Returned frame buffer and de-initialised camera before exit.");
 
-    if(mmc_config.sd_save == SD_SAVING){
+    if(mcc_config.sd_save == SD_SAVING){
         sd_deinit();
     }
 
