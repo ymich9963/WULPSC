@@ -10,10 +10,10 @@
 #include "nvs_flash.h"
 #include "sd.h"
 
-#define SD_CRED    1 
+#define SD_CRED    1
     #if !SD_CRED
-        #define ESP_WIFI_SSID      "plus"
-        #define ESP_WIFI_PASS      "abcde123"
+        #define ESP_WIFI_SSID      "Gavrilis"
+        #define ESP_WIFI_PASS      "123456789"
     #endif
 
 #define ESP_MAXIMUM_RETRY  3

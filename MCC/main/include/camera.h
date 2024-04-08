@@ -5,6 +5,10 @@
 #ifndef CAM_H
 #define CAM_H
 
+#include "esp_camera.h"
+#include "esp_log.h"
+#include "mcc_config.h"
+
 /* Camera definitions for ESP32-CAM mcc_config */
 #define CAM_PIN_PWDN 32
 #define CAM_PIN_RESET -1 //software reset will be performed
@@ -24,12 +28,7 @@
 #define CAM_PIN_PCLK 22
 #define CAM_PIN_FLASH 4
 
-
-#include "esp_camera.h"
-#include "esp_log.h"
-#include "mcc_config.h"
-
-
+#define REFRESH_NUM 2
 
 /**
  * @brief Used to set up the flash LED on the ESP

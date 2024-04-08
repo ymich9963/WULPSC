@@ -1,16 +1,13 @@
 #ifndef SD_H
 #define SD_H
 
-#include "esp_err.h"
-#include "esp_camera.h"
-#include <nvs_flash.h>
-
-// from SD card example
 #include <string.h>
 #include <sys/unistd.h>
 #include <sys/stat.h>
 #include "esp_vfs_fat.h"
 #include "sdmmc_cmd.h"
+#include "esp_camera.h"
+#include "esp_err.h"
 
 // SD card pins used in SPI communication
 //based on sdspi example
@@ -39,6 +36,7 @@
 */
 esp_err_t sd_init();
 
+
 /**
  * @brief Writes all of the image data to a file
  * 
@@ -57,5 +55,13 @@ esp_err_t sd_deinit();
  * @brief Read WiFi credentials from the file wificred located on the SD card 
 */
 esp_err_t read_wifi_credentials();
+
+
+
+esp_err_t sys_sd_var_setup();
+
+
+
+esp_err_t sys_sd_save(camera_fb_t* fb);
 
 #endif

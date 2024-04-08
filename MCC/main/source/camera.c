@@ -27,7 +27,7 @@ camera_config_t camera_config = {
     .pin_pclk   = CAM_PIN_PCLK,
 
     //XCLK 20MHz or 10MHz for OV2640 double FPS (Experimental)
-    .xclk_freq_hz   = 20000000,
+    .xclk_freq_hz   = 10000000,
     .ledc_timer     = LEDC_TIMER_0,
     .ledc_channel   = LEDC_CHANNEL_0,
 
@@ -82,10 +82,12 @@ void pic_data_output(camera_fb_t *fb){
 
 
 camera_fb_t* fb_refresh(camera_fb_t * fb){
-    fb = esp_camera_fb_get();
-    esp_camera_fb_return(fb);
-    fb = NULL;
-    
-    ESP_LOGI(TAG, "Refreshed camera...");
+    for(int i = 0; i < REFRESH_NUM; i++){
+        fb = esp_camera_fb_get();
+        esp_camera_fb_return(fb);
+        fb = NULL;
+        ESP_LOGI(TAG, "Refreshed camera...");
+    }
+
     return fb;
 }

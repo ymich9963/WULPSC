@@ -88,30 +88,7 @@ esp_err_t config_settings_post_handler(httpd_req_t *req);
 
 /* Sample cURL command,
 
-curl -ContentType 'application/json' -Body '
-{
-    "brightness":       0,
-    "contrast":         0, 
-    "saturation":       0, 
-    "sharpness":        0,
-    "denoise":          0,
-    "special_effect":   0,
-    "wb_mode":          0,
-    "ae_level":         0,
-    "aec_value":        100,
-    "agc_gain":         2,
-    "gainceiling":      6,
-    "lenc":             1,
-    "agc":              0,
-    "aec":              0,
-    "hmirror":          0,
-    "vflip":            0,
-    "aec2":             0,
-    "bpc":              1,
-    "wpc":              1
-}
-
-' -Method Post http://192.168.124.145:19520/config
+curl -ContentType 'application/json' -Body ' {"brightness":       0, "contrast":0, "saturation":0, "sharpness":0, "denoise":0,  "special_effect":0,"wb_mode":3,"ae_level":0,"aec_value":200,"agc_gain":2,"gainceiling":6,"lenc":1,"agc":0,"aec":0, "hmirror":0,"vflip":0,"aec2":0, "bpc":1, "wpc":1}' -Method Post http://192.168.124.145:19520/config
 
 */
 

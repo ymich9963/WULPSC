@@ -10,8 +10,7 @@ typedef struct {
 } jpg_chunking_t;
 
 // Our URI handler function to be called during GET /uri request  
-esp_err_t get_handler(httpd_req_t *req)
-{
+esp_err_t get_handler(httpd_req_t *req){
     ESP_LOGI(TAG, "Entered get handler");
 
     // Send a simple response 
@@ -34,23 +33,18 @@ size_t jpg_encode_stream(void * arg, size_t index, const void* data, size_t len)
 
 esp_err_t picture_handler(httpd_req_t *req){
     esp_err_t res = ESP_OK;
-    esp_err_t ret = ESP_OK;
 
-    // if frame buffer null
-    if(!fb){
-        fb = fb_refresh(fb);
-        fb = sys_take_picture(mcc_config);
-        sys_sd_save_check(&mcc_config, fb);
-        ESP_LOGI(TAG,"Took new picture.");
-        pic_data_output(fb);
-    }
-
-    // check again 
+    fb = fb_refresh(fb);
+    fb = sys_take_picture();
+    
+    // check 
     if (!fb) {
         ESP_LOGE(TAG, "Camera capture failed");
         httpd_resp_send_500(req);
         return ESP_FAIL;
     }
+    ESP_LOGI(TAG,"Took new picture.");
+    pic_data_output(fb);
 
     ESP_LOGI(TAG,"Picture received. Trying to send now.");
     res = httpd_resp_set_type(req, "image/jpeg");
@@ -58,7 +52,6 @@ esp_err_t picture_handler(httpd_req_t *req){
         res = httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
     }
 
-    //! TODO: make chunking availiable without it being in a non-JPEG format, change 80 in frame2jpg
     if(res == ESP_OK){
         if(fb->format == PIXFORMAT_JPEG){
             res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
@@ -66,76 +59,14 @@ esp_err_t picture_handler(httpd_req_t *req){
         } else {
             jpg_chunking_t jchunk = {req, 0};
             res = frame2jpg_cb(fb, 80, jpg_encode_stream, &jchunk)?ESP_OK:ESP_FAIL;
-            ret = httpd_resp_send_chunk(req, NULL, 0);
+            httpd_resp_send_chunk(req, NULL, 0);
             ESP_LOGI(TAG, "Response Sent in chunks");
         }
-        if(ret==ESP_OK){
-            mcc_config.pic_poll = true;
-        }
     }
-    esp_camera_fb_return(fb);
-    fb = NULL; // reset to null to recheck if at the top
 
+    mcc_config.pic_done = true; // to switch cameras
     return res;
 }
-
-esp_err_t exit_handler(httpd_req_t *req){
-    mcc_config.exit = 1;
-    return ESP_OK;
-}
-
-esp_err_t cam0_handler(httpd_req_t *req){
-    /* 
-       Handler takes a picture then de-initialises and powers down the camera
-       after the MUXs are switched it will power up, re-initialise the second camera
-       to have it ready for the next GET request
-    */
-    esp_err_t ret;
-
-    ret = picture_handler(req);
-    if(ret != ESP_OK){
-        ESP_LOGW(TAG, "JPEG Handler returned badly");
-    }
-
-    mcc_config.active_cam = 0;    
-    ret = sys_camera_switch(mcc_config);
-    if(ret != ESP_OK){
-        ESP_LOGE(TAG, "Camera switch returned badly");
-    }
-
-    return ret;
-}
-
-esp_err_t cam1_handler(httpd_req_t *req){
-    /* 
-       handler for the second camera. takes the picture but does not switch back.
-       checks if pic is taken before also taking a pic.
-    */
-
-    esp_err_t ret;
-    
-    ESP_LOGI(TAG, "Waiting for first picture to finish sending.");
-    while(!mcc_config.pic_poll){
-        vTaskDelay(10/portTICK_PERIOD_MS);
-    }
-    
-    // Reset polling
-    mcc_config.pic_poll = false;
-
-    ret = picture_handler(req);
-    if(ret != ESP_OK){
-        ESP_LOGW(TAG, "JPEG Handler returned badly");
-    }
-
-    mcc_config.active_cam = 1;
-    ret = sys_camera_switch(mcc_config);
-    if(ret != ESP_OK){
-        ESP_LOGE(TAG, "Camera switch returned badly");
-    }
-
-    return ret;
-}
-
 
 esp_err_t config_settings_post_handler(httpd_req_t *req){
 
@@ -172,7 +103,7 @@ esp_err_t config_settings_post_handler(httpd_req_t *req){
     content[recv_size] = '\0';
 	
 
-    mcc_config = JSON_config_set(content, mcc_config);
+    JSON_config_set(content);
     mcc_config.sensor = esp_camera_sensor_get();
     camera_set_settings(mcc_config);
 
@@ -198,28 +129,6 @@ httpd_uri_t pic_get = {
     .handler  = picture_handler,
     .user_ctx = NULL
 };
-
-httpd_uri_t exit_get = {
-    .uri      = "/exit",
-    .method   = HTTP_GET,
-    .handler  = exit_handler,
-    .user_ctx = NULL
-};
-
-httpd_uri_t cam0_get = {
-    .uri      = "/cam0",
-    .method   = HTTP_GET,
-    .handler  = cam0_handler,
-    .user_ctx = NULL
-};
-
-httpd_uri_t cam1_get = {
-    .uri      = "/cam1",
-    .method   = HTTP_GET,
-    .handler  = cam1_handler,
-    .user_ctx = NULL
-};
-
 
 /* POST Handlers */
 httpd_uri_t config_settings_post = {
@@ -253,10 +162,6 @@ httpd_handle_t start_webserver(void)
         // GET
         httpd_register_uri_handler(server, &uri_get);   // simple handler for testing
         httpd_register_uri_handler(server, &pic_get);   // to get the image
-        httpd_register_uri_handler(server, &exit_get);  // to exit main loop and shutdown
-        httpd_register_uri_handler(server, &cam0_get);  // camera 1 handler
-        httpd_register_uri_handler(server, &cam1_get);  // camera 2 handler
-
         // POST
         httpd_register_uri_handler(server, &config_settings_post); // change camera settings
 

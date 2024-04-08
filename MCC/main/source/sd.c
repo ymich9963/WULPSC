@@ -2,13 +2,12 @@
 
 const static char* TAG = "WULPSC - SD";
 
+// Default structure initializer for SD over SPI driver
+sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 sdmmc_card_t *card;
 const char mount_point[] = MOUNT_POINT;
 char sd_ssid[MAX_CHAR_LINE];
 char sd_pswd[MAX_CHAR_LINE];
-
-// Default structure initializer for SD over SPI driver
-sdmmc_host_t host = SDSPI_HOST_DEFAULT();
 
 esp_err_t sd_write_arr(const char *path, camera_fb_t *fb){
     size_t ret;
@@ -32,7 +31,7 @@ esp_err_t sd_init(){
 
     // file system config
     esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-        .format_if_mount_failed = true,
+        .format_if_mount_failed = false,
         .max_files = 10,
         .allocation_unit_size = 16 * 1024   // for 16 GB
     };
@@ -52,7 +51,7 @@ esp_err_t sd_init(){
         .mosi_io_num = PIN_NUM_MOSI,
         .miso_io_num = PIN_NUM_MISO,
         .sclk_io_num = PIN_NUM_CLK,
-        .quadwp_io_num = -1, // change these for more data pins?
+        .quadwp_io_num = -1, 
         .quadhd_io_num = -1,
         .max_transfer_sz = 4092,
     };
@@ -64,10 +63,11 @@ esp_err_t sd_init(){
         return ret;
     }
 
-    // initializes the slot without card detect (CD) and write protect (WP) signals...what does that mean?
-    sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT(); // uses GPIO13 for CS, how does it know?
+    // initializes the slot without card detect (CD) and write protect (WP) signals
+    sdspi_device_config_t slot_config = SDSPI_DEVICE_CONFIG_DEFAULT(); // uses GPIO13 for CS
     slot_config.gpio_cs = PIN_NUM_CS;
     slot_config.host_id = host.slot;
+
 
     ESP_LOGI(TAG, "Mounting filesystem");
     ret = esp_vfs_fat_sdspi_mount(mount_point, &host, &slot_config, &mount_config, &card);

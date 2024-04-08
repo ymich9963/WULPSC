@@ -2,6 +2,8 @@
 
 const char * TAG = "WULPSC - Config";
 
+extern mcc_config_t mcc_config;
+
 /* 8-bit random number */
 uint16_t rnd;
 
@@ -11,7 +13,7 @@ char rnd_str[6] = "\0";
 /* 22+1 bytes max length file path */
 char path[20] = "\0";
 
-esp_err_t camera_set_settings(mcc_config_t mcc_config){
+esp_err_t camera_set_settings(){
 
     // settings with values
     mcc_config.sensor->set_brightness(mcc_config.sensor, mcc_config.camera.brightness);            // from -2 to 2
@@ -44,7 +46,7 @@ esp_err_t camera_set_settings(mcc_config_t mcc_config){
     return ESP_OK;
 }
 
-void camera_get_settings(mcc_config_t mcc_config){
+void camera_get_settings(){
     
     ESP_LOGI(TAG, "---SENSOR--DATA---");
     ESP_LOGI(TAG, "Brightness: %d", mcc_config.sensor->status.brightness);
@@ -66,7 +68,7 @@ void camera_get_settings(mcc_config_t mcc_config){
     ESP_LOGI(TAG, "WPC: %d", mcc_config.sensor->status.wpc);
 }
 
-mcc_config_t JSON_config_set(char* content, mcc_config_t mcc_config){
+esp_err_t JSON_config_set(char* content){
     cJSON *root = cJSON_Parse(content);
     ESP_LOGI(TAG, "Changing settings...");
     if (cJSON_GetObjectItem(root, "brightness")) {
@@ -167,67 +169,18 @@ mcc_config_t JSON_config_set(char* content, mcc_config_t mcc_config){
 
 	cJSON_Delete(root);    
 
-    return mcc_config;     
+    return ESP_OK;     
 }
 
-esp_err_t sys_sd_save_check(mcc_config_t* mcc_config, camera_fb_t* fb){
-    esp_err_t ret;
-    switch (mcc_config->sd_save){
-    case NO_SD:
-        ret = sd_deinit();
 
-        if(ret != ESP_OK){
-            ESP_LOGW(TAG, "Error with SD de-init");
-            return ESP_FAIL;
-        }
-
-        return ESP_OK;
-        break;
-    case SD_SAVE:
-        mcc_config->sd_save = SD_SAVING;
-
-        // to reduce file size when saving
-        change_pixformat_to_jpeg();
-
-        esp_fill_random(&rnd, sizeof(rnd));
-        sprintf(rnd_str,"%u", rnd);
-
-        ESP_LOGI(TAG, "SD Ready for saving!");
-        return ESP_OK;
-        break;
-    case SD_SAVING:
-        strcpy(path,MOUNT_POINT"/");
-
-        strcat(path, rnd_str);
-
-        switch (mcc_config->active_cam)
-        {
-        case 0:
-            strcat(path, "L.jpg");
-            break;
-        case 1:
-            strcat(path, "R.jpg");
-        default:
-            break;
-        }
-        ret = sd_write_arr(path, fb);
-
-        // error check if file was not written correctly
-        if (ret != ESP_OK){
-            ESP_LOGW(TAG, "File not written correctly");
-            return ESP_FAIL;
-        }
-
-        return ESP_OK;
-        break;
-    default:
-        return ESP_FAIL;
-        break;
-    } 
-}
-
-camera_fb_t* sys_take_picture(mcc_config_t mcc_config){
+camera_fb_t* sys_take_picture(){
     camera_fb_t* fb;
+
+    // Apply settings at each picture
+    mcc_config.sensor = esp_camera_sensor_get();
+    camera_set_settings(mcc_config);  
+    vTaskDelay(10/portTICK_PERIOD_MS);
+
     switch (mcc_config.flash){
     case false:
         fb = esp_camera_fb_get();
@@ -246,51 +199,89 @@ camera_fb_t* sys_take_picture(mcc_config_t mcc_config){
     }
 }
 
-esp_err_t sys_camera_switch(mcc_config_t mcc_config){
+esp_err_t sys_camera_switch()
+{
     esp_err_t ret;
-    
+ 
     // de-initialise 
     ret = esp_camera_deinit();
     if(ret != ESP_OK){
         ESP_LOGW(TAG, "De-init returned badly");
+    } else {
+        ESP_LOGW(TAG, "De-init OK");
     }
+    vTaskDelay(100/portTICK_PERIOD_MS);
 
     // power down?
     gpio_set_level(CAM_PIN_PWDN, 0);
     if(ret != ESP_OK){
         ESP_LOGW(TAG, "GPIO set level returned badly");
+    } else {
+        ESP_LOGW(TAG, "GPIO set level OK. PWDN is 0");
     }
-    vTaskDelay(10/portTICK_PERIOD_MS);
-    
-    switch (mcc_config.active_cam){
-    case 0:
-        gpio_set_level(SEL_PIN, 1);
-        break;
-    case 1:
-        gpio_set_level(SEL_PIN, 0);
-        break;
-    default:
-        ESP_LOGW(TAG,"Entered default case in cam_switched(). Reset to 0");
-        mcc_config.active_cam = 0;
-        break;
-    }
+    vTaskDelay(100/portTICK_PERIOD_MS);
+
+    mcc_config.sel_status ^= 0x1;
+    gpio_set_level(SEL_PIN, mcc_config.sel_status);
+    ESP_LOGI(TAG, "SEL Status: %d at %d", mcc_config.sel_status, SEL_PIN);
+    vTaskDelay(1000/portTICK_PERIOD_MS);
 
     // power up!
     gpio_set_level(CAM_PIN_PWDN, 1);
     if(ret != ESP_OK){
         ESP_LOGW(TAG, "GPIO set level returned badly");
+    } else {
+        ESP_LOGW(TAG, "GPIO set level OK. PSWDN is 1.");
     }
-    vTaskDelay(10/portTICK_PERIOD_MS);
+    vTaskDelay(100/portTICK_PERIOD_MS);
 
     // initialise
     ret = init_camera();
     if(ret != ESP_OK){
         ESP_LOGW(TAG, "Camera init returned badly");
+    } else {
+        ESP_LOGW(TAG, "Camera init OK");
     }
+    vTaskDelay(100/portTICK_PERIOD_MS);
 
-    // set settings again
-    mcc_config.sensor = esp_camera_sensor_get();
-    camera_set_settings(mcc_config);
+    return ESP_OK;
+}
+
+esp_err_t sys_sd_var_setup(){
+
+        // to reduce file size when saving
+        change_pixformat_to_jpeg();
+
+        esp_fill_random(&rnd, sizeof(rnd));
+        sprintf(rnd_str,"%u", rnd);
+
+        ESP_LOGI(TAG, "SD Ready for saving!");
+        return ESP_OK;
+}
+
+esp_err_t sys_sd_save(camera_fb_t* fb){
+    esp_err_t ret;
+
+    strcpy(path,MOUNT_POINT"/"); // reset the path
+    strcat(path, rnd_str);
+
+    switch (mcc_config.sel_status)
+    {
+    case 0x0:
+        strcat(path, "L.jpg");
+        break;
+    case 0x1:
+        strcat(path, "R.jpg");
+    default:
+        break;
+    }
+    ret = sd_write_arr(path, fb);
+
+    // error check if file was not written correctly
+    if (ret != ESP_OK){
+        ESP_LOGW(TAG, "File not written correctly");
+        return ESP_FAIL;
+    }
 
     return ESP_OK;
 }
