@@ -17,8 +17,8 @@
 /* Credentials used to test the WUC */
 #define TEST_CRED 0
     #if TEST_CRED
-        #define ESP_WIFI_SSID      "yiannis-laptop"
-        #define ESP_WIFI_PASS      "12345678"
+        #define ESP_WIFI_SSID      "test-ssid"
+        #define ESP_WIFI_PASS      "test-pass"
     #endif
 
 /* Maximum retries to connect to the WiFi. Only used when stored credentials are detected */

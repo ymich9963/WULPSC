@@ -16,6 +16,8 @@ esp_err_t get_handler(httpd_req_t *req){
 
 esp_err_t exit_handler(httpd_req_t *req){
     wuc_config.exit = true;
+    const char resp[] = "Exited server loop.";
+    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
 

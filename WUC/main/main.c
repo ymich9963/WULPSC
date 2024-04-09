@@ -7,8 +7,8 @@ static const char *TAG = "WULPSC - Wake Up Module";
 
 wuc_config_t wuc_config = {
     .exit               = false,
-    .sleep_time_sec     = 10,
-    .active_time_sec    = 30,
+    .sleep_time_sec     = 30,
+    .active_time_sec    = 60,
     .ssid               = "",
     .pswd               = "",
     .stored_creds       = false,
