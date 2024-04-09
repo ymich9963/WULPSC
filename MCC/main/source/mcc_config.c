@@ -166,6 +166,11 @@ esp_err_t JSON_config_set(char* content){
         mcc_config.camera.wpc = _wpc;
 		ESP_LOGI(TAG, "WPC=%d",_wpc);
 	}
+    if (cJSON_GetObjectItem(root, "sd_save")) {
+        bool _sd_save = cJSON_GetObjectItem(root, "sd_save");
+        mcc_config.sd_save = _sd_save;
+        ESP_LOGI(TAG, "SD_SAVE=%d", _sd_save);
+    } 
 
 	cJSON_Delete(root);    
 

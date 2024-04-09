@@ -107,7 +107,7 @@ esp_err_t config_settings_post_handler(httpd_req_t *req){
     mcc_config.sensor = esp_camera_sensor_get();
     camera_set_settings(mcc_config);
 
-    
+    /* Send a response to */
     const char resp[] = "Paramaters set";
     httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
