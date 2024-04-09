@@ -25,8 +25,6 @@ void app_main(void)
     /* HTTP Server handle */
     httpd_handle_t server;
 
-    /* Setup deep sleep */
-    deep_sleep_setup();
 
     /* Initialise the non volatile storage */
     ret = nvs_flash_init();
@@ -96,6 +94,9 @@ void app_main(void)
         mcc_powerup();
         vTaskDelay(wuc_config.active_time_sec*1000/portTICK_PERIOD_MS);
     }
+    
+    /* Setup deep sleep */
+    deep_sleep_setup();
     
     /* Power down the MCC */
     mcc_powerdown();

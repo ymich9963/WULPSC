@@ -19,7 +19,7 @@
 /* WUC System Configuration structure*/
 typedef struct{
     bool exit;
-    int sleep_time_sec;
+    uint32_t sleep_time_sec;
     int active_time_sec;
     char ssid[33];
     char pswd[65];

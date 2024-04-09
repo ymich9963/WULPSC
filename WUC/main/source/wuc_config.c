@@ -24,7 +24,7 @@ esp_err_t deep_sleep_setup(){
     ESP_LOGI(TAG,"Enabling timer wakeup, %ds", wuc_config.sleep_time_sec);
 
     /* Enable RTC timer wakeup */    
-    ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(wuc_config.sleep_time_sec * 1000000));
+    ESP_ERROR_CHECK(esp_sleep_enable_timer_wakeup(wuc_config.sleep_time_sec / 1000000));
 
     struct timeval now;
     gettimeofday(&now, NULL);
