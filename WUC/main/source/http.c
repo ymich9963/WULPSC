@@ -23,8 +23,7 @@ esp_err_t exit_handler(httpd_req_t *req){
 
 esp_err_t set_sleep_time_handler(httpd_req_t *req){
 
-    uint32_t MAX = sizeof(wuc_config.sleep_time_sec);
-    uint32_t *content;
+    int MAX = 511;    
 
     /* Make sure bytes dont go over max length*/
     size_t recv_size = req->content_len;
@@ -37,9 +36,12 @@ esp_err_t set_sleep_time_handler(httpd_req_t *req){
         return ESP_FAIL;
     }
 
-    ESP_LOGI(TAG, "Size %d bytes", recv_size);
-    
+    ESP_LOGI(TAG, "Size %u bytes", recv_size);
+
+    char* content = malloc(sizeof(char) * recv_size + 1);    
+
     int ret = httpd_req_recv(req, content, recv_size);
+    content[recv_size] = '\0';
     ESP_LOGI(TAG, "Data %s", content);
     if (ret <= 0) {  /* 0 return value indicates connection closed */
         /* Check if timeout occurred */
@@ -55,7 +57,13 @@ esp_err_t set_sleep_time_handler(httpd_req_t *req){
     }
 
     /* Set the received conent to the system config */
-    wuc_config.sleep_time_sec = content;
+    sscanf(content, "%lu", &wuc_config.sleep_time_sec);
+    ESP_LOGI(TAG, "Sleep time set to %lu", wuc_config.sleep_time_sec);
+    
+    /* Send a response to */
+    const char resp[] = "Sleep parameter set";
+    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
 }
 
 /* URI handlers */

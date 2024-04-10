@@ -2,6 +2,7 @@
 #include "esp_http_server.h"
 #include "sys/param.h" // contains MIN() macro
 #include "wuc_config.h"
+#include "string.h"
 
 /**
  * @brief GET Handler, only used for testing 
