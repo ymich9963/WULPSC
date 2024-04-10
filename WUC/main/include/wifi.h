@@ -14,7 +14,7 @@
 #include "driver/uart.h"
 #include "wuc_config.h"
 
-/* Credentials used to test the WUC */
+/* Credentials used to test the WUC without the smart config process  */
 #define TEST_CRED 0
     #if TEST_CRED
         #define ESP_WIFI_SSID      "test-ssid"
@@ -28,8 +28,12 @@
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
- * @brief Event handler for smart config using ESPTouch
+ * @brief Event handler for smart config using ESPTouch. Parameters are required for smart config to take place.
 */
 void sc_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 
@@ -39,15 +43,21 @@ void sc_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, 
 void smartconfig_task(void * parm);
 
 /**
- * @brief Initialise WiFi with the stored credentials
+ * @brief Initialise WiFi with the stored credentials. Only uses the credentials stored in the NVS. For the credentials to change
+ * the flash must be erased.
  * 
  * @return ESP_OK on success
 */
 esp_err_t wifi_init(void);
 
 /**
- * @brief Initialise WiFi with smart config
+ * @brief Initialise WiFi with smart config. It requires the ESPTouch app downloaded to pass the credentials from the 
+ * connected device with the app to the ESP32.
  * 
  * @return ESP_OK on success
 */
 esp_err_t wifi_init_sc(void);
+
+#ifdef __cplusplus
+}
+#endif

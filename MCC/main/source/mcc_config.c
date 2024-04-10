@@ -4,21 +4,22 @@ const char * TAG = "WULPSC - Config";
 
 extern mcc_config_t mcc_config;
 
-/* 8-bit random number */
+/* 16-bit random number */
 uint16_t rnd;
 
-/* String var to store 16-bit random number (up to 65536,  i.e. 6 bytes + 1)  */
+/* String var to store 16-bit random number (up to 65536,  i.e. 5 character bytes + 1 for null terminator)  */
 char rnd_str[6] = "\0";
 
-/* 22+1 bytes max length file path */
+/* 19+1 bytes max length file path */
 char path[20] = "\0";
 
-esp_err_t camera_set_settings(){
-
-    // settings with values
+esp_err_t camera_set_settings()
+{
+    /* Set the values to the system config */
     mcc_config.sensor->set_brightness(mcc_config.sensor, mcc_config.camera.brightness);            // from -2 to 2
     mcc_config.sensor->set_contrast(mcc_config.sensor, mcc_config.camera.contrast);                // from -2 to 2
     mcc_config.sensor->set_saturation(mcc_config.sensor, mcc_config.camera.saturation);            // from -2 to 2
+    // Not supported by OV2640
     // mcc_config.sensor->set_sharpness(mcc_config.sensor, mcc_config.camera.sharpness);              // from -2 to 2 NOT SUPPORTED
     // mcc_config.sensor->set_denoise(mcc_config.sensor, mcc_config.camera.denoise);                  // from 0 to 255 NOT SUPPORTED
     mcc_config.sensor->set_special_effect(mcc_config.sensor, mcc_config.camera.special_effect);    // from 0 to 6
@@ -29,7 +30,7 @@ esp_err_t camera_set_settings(){
     mcc_config.sensor->set_agc_gain(mcc_config.sensor, mcc_config.camera.agc_gain);                // from 0 to 30, automatic gain control
     mcc_config.sensor->set_gainceiling(mcc_config.sensor, mcc_config.camera.gainceiling);          // from 0 to 6, upper limit of gain
     
-    // settings with 1/0 enable/disable
+    /* Settings with 1/0 enable/disable */
     mcc_config.sensor->set_lenc(mcc_config.sensor, mcc_config.camera.lenc);                         // lens correction
     mcc_config.sensor->set_gain_ctrl(mcc_config.sensor, mcc_config.camera.agc);                     // auto gain control on/off    
     mcc_config.sensor->set_exposure_ctrl(mcc_config.sensor, mcc_config.camera.aec);                 /* auto exposure control on/off, 
@@ -46,8 +47,8 @@ esp_err_t camera_set_settings(){
     return ESP_OK;
 }
 
-void camera_get_settings(){
-    
+void camera_get_settings()
+{    
     ESP_LOGI(TAG, "---SENSOR--DATA---");
     ESP_LOGI(TAG, "Brightness: %d", mcc_config.sensor->status.brightness);
     ESP_LOGI(TAG, "Contrast: %d", mcc_config.sensor->status.contrast);
@@ -66,11 +67,19 @@ void camera_get_settings(){
     ESP_LOGI(TAG, "AEC2: %d", mcc_config.sensor->status.aec2);
     ESP_LOGI(TAG, "BPC: %d", mcc_config.sensor->status.bpc);
     ESP_LOGI(TAG, "WPC: %d", mcc_config.sensor->status.wpc);
+    return;
 }
 
-esp_err_t JSON_config_set(char* content){
+esp_err_t JSON_config_set(char* content)
+{
+    /* Use the cJSON API to parse the content to a JSON object*/
     cJSON *root = cJSON_Parse(content);
     ESP_LOGI(TAG, "Changing settings...");
+
+    /**
+     * Look for the string corresponding to the correct value in the system configuration. 
+     * Happens for every variable the user can change through HTTP.
+    */
     if (cJSON_GetObjectItem(root, "brightness")) {
 		int8_t _brightness = cJSON_GetObjectItem(root,"brightness")->valueint;
         mcc_config.camera.brightness =  _brightness;
@@ -171,21 +180,21 @@ esp_err_t JSON_config_set(char* content){
         mcc_config.sd_save = _sd_save;
         ESP_LOGI(TAG, "SD_SAVE=%d", _sd_save);
     } 
-
 	cJSON_Delete(root);    
-
     return ESP_OK;     
 }
 
 
-camera_fb_t* sys_take_picture(){
+camera_fb_t* sys_take_picture()
+{
     camera_fb_t* fb;
 
-    // Apply settings at each picture
+    /* Apply settings at each picture. Required due to initialisation and de-initialisation */
     mcc_config.sensor = esp_camera_sensor_get();
     camera_set_settings(mcc_config);  
     vTaskDelay(10/portTICK_PERIOD_MS);
 
+    /* Not implemented, but if a flash LED was used, it would get turned on based on the .flash member state */
     switch (mcc_config.flash){
     case false:
         fb = esp_camera_fb_get();
@@ -199,6 +208,7 @@ camera_fb_t* sys_take_picture(){
         break;
     default:
         fb = NULL;
+        ESP_LOGW(TAG, "Problem with flash value, no image taken...");
         return fb;
         break;
     }
@@ -208,41 +218,42 @@ esp_err_t sys_camera_switch()
 {
     esp_err_t ret;
  
-    // de-initialise 
+    /* De-initialise */ 
     ret = esp_camera_deinit();
-    if(ret != ESP_OK){
+    if (ret != ESP_OK) {
         ESP_LOGW(TAG, "De-init returned badly");
     } else {
         ESP_LOGW(TAG, "De-init OK");
     }
     vTaskDelay(100/portTICK_PERIOD_MS);
 
-    // power down?
+    /* Power down for safe de-initialisation */
     gpio_set_level(CAM_PIN_PWDN, 0);
-    if(ret != ESP_OK){
+    if (ret != ESP_OK) {
         ESP_LOGW(TAG, "GPIO set level returned badly");
     } else {
         ESP_LOGW(TAG, "GPIO set level OK. PWDN is 0");
     }
     vTaskDelay(100/portTICK_PERIOD_MS);
 
+    /* Using an XOR gate to flip the SEL pin for the MUXs*/
     mcc_config.sel_status ^= 0x1;
     gpio_set_level(SEL_PIN, mcc_config.sel_status);
     ESP_LOGI(TAG, "SEL Status: %d at %d", mcc_config.sel_status, SEL_PIN);
     vTaskDelay(1000/portTICK_PERIOD_MS);
 
-    // power up!
+    /* Power up! */
     gpio_set_level(CAM_PIN_PWDN, 1);
-    if(ret != ESP_OK){
+    if (ret != ESP_OK) {
         ESP_LOGW(TAG, "GPIO set level returned badly");
     } else {
         ESP_LOGW(TAG, "GPIO set level OK. PSWDN is 1.");
     }
     vTaskDelay(100/portTICK_PERIOD_MS);
 
-    // initialise
+    /* Initialise */
     ret = init_camera();
-    if(ret != ESP_OK){
+    if (ret != ESP_OK) {
         ESP_LOGW(TAG, "Camera init returned badly");
     } else {
         ESP_LOGW(TAG, "Camera init OK");
@@ -252,26 +263,29 @@ esp_err_t sys_camera_switch()
     return ESP_OK;
 }
 
-esp_err_t sys_sd_var_setup(){
+esp_err_t sys_sd_var_setup()
+{
+    /* To reduce file size when saving */
+    change_pixformat_to_jpeg();
 
-        // to reduce file size when saving
-        change_pixformat_to_jpeg();
+    esp_fill_random(&rnd, sizeof(rnd));
+    sprintf(rnd_str,"%u", rnd);
 
-        esp_fill_random(&rnd, sizeof(rnd));
-        sprintf(rnd_str,"%u", rnd);
-
-        ESP_LOGI(TAG, "SD Ready for saving!");
-        return ESP_OK;
+    ESP_LOGI(TAG, "SD Ready for saving!");
+    return ESP_OK;
 }
 
 esp_err_t sys_sd_save(camera_fb_t* fb){
     esp_err_t ret;
 
-    strcpy(path,MOUNT_POINT"/"); // reset the path
+    /* Set the first part of the path which is the mount point '/sdcard' followed by another '/' */
+    strcpy(path,MOUNT_POINT"/"); 
+
+    /* Attach the random string obtained from the setup function */
     strcat(path, rnd_str);
 
-    switch (mcc_config.sel_status)
-    {
+    /* Based on the SEL pin status, attach the L or R as a suffix to separate the two images, as well as the file extension */
+    switch (mcc_config.sel_status) {
     case 0x0:
         strcat(path, "L.jpg");
         break;
@@ -280,9 +294,11 @@ esp_err_t sys_sd_save(camera_fb_t* fb){
     default:
         break;
     }
+
+    /* Write frame buffer to SD card */
     ret = sd_write_arr(path, fb);
 
-    // error check if file was not written correctly
+    /* Error check if file was not written correctly */
     if (ret != ESP_OK){
         ESP_LOGW(TAG, "File not written correctly");
         return ESP_FAIL;

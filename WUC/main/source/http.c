@@ -2,10 +2,12 @@
 
 const char* TAG = "WULPSC - WUC HTTP";
 
+/* System configuration defined in main */
 extern wuc_config_t wuc_config;
 
 /* Our URI handler function to be called during GET /uri request */ 
-esp_err_t get_handler(httpd_req_t *req){
+esp_err_t get_handler(httpd_req_t *req)
+{
     ESP_LOGI(TAG, "Entered get handler");
 
     /* Send a simple response to test functionality */ 
@@ -14,34 +16,41 @@ esp_err_t get_handler(httpd_req_t *req){
     return ESP_OK;
 }
 
-esp_err_t exit_handler(httpd_req_t *req){
+esp_err_t exit_handler(httpd_req_t *req)
+{
+    /* Set to true to exit the main server loop and enter deep sleep*/
     wuc_config.exit = true;
+
+    /* Send response to signify it has been executed */
     const char resp[] = "Exited server loop.";
     httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
     return ESP_OK;
 }
 
-esp_err_t set_sleep_time_handler(httpd_req_t *req){
+esp_err_t set_sleep_time_handler(httpd_req_t *req)
+{
 
+    /* Max character length */
     int MAX = 511;    
 
-    /* Make sure bytes dont go over max length*/
+    /* Make sure bytes dont go over max length */
     size_t recv_size = req->content_len;
-    if (recv_size <= 0) {
-        ESP_LOGE(TAG, "0 or less bytes sent");
-        httpd_resp_send_500(req);
-        return ESP_FAIL;
-    } else if (recv_size >= MAX){
+    if (recv_size >= MAX){
         ESP_LOGE(TAG, "Over %d bytes sent", MAX);
         return ESP_FAIL;
     }
 
     ESP_LOGI(TAG, "Size %u bytes", recv_size);
 
+    /* Allocate the size of the received string */
     char* content = malloc(sizeof(char) * recv_size + 1);    
 
+    /* Set the received data to the content variable */
     int ret = httpd_req_recv(req, content, recv_size);
+
+    /* Add a null terminator character to signify the end of the string */
     content[recv_size] = '\0';
+
     ESP_LOGI(TAG, "Data %s", content);
     if (ret <= 0) {  /* 0 return value indicates connection closed */
         /* Check if timeout occurred */
@@ -113,7 +122,8 @@ httpd_handle_t start_webserver(void){
     return server;
 }
 
-void stop_webserver(httpd_handle_t server){
+void stop_webserver(httpd_handle_t server)
+{
     if (server) {
         httpd_stop(server);
     }

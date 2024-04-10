@@ -3,11 +3,16 @@
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
 static EventGroupHandle_t s_wifi_event_group;
 
+
+/* Initialisations required for WiFi events */
 static const int CONNECTED_BIT = BIT0;
 static const int ESPTOUCH_DONE_BIT = BIT1;
-static int s_retry_num = 0;
-static const char *TAG = "WUC - WiFi";
 extern wuc_config_t wuc_config;
+
+/* Variable to store retries */
+static int s_retry_num = 0;
+
+static const char *TAG = "WUC - WiFi";
 
 void smartconfig_task(void * parm)
 {
@@ -15,11 +20,16 @@ void smartconfig_task(void * parm)
     ESP_ERROR_CHECK( esp_smartconfig_set_type(SC_TYPE_ESPTOUCH) );
     smartconfig_start_config_t cfg = SMARTCONFIG_START_CONFIG_DEFAULT();
     ESP_ERROR_CHECK( esp_smartconfig_start(&cfg) );
+
+    /* Task loop */
     while (1) {
         uxBits = xEventGroupWaitBits(s_wifi_event_group, CONNECTED_BIT | ESPTOUCH_DONE_BIT, true, false, portMAX_DELAY);
+        
         if(uxBits & CONNECTED_BIT) {
             ESP_LOGI(TAG, "WiFi Connected to ap");
         }
+
+        /* If the ESPTOUCH_DONE_BIT is detected, the task has finished */
         if(uxBits & ESPTOUCH_DONE_BIT) {
             ESP_LOGI(TAG, "smartconfig over");
             esp_smartconfig_stop();
@@ -30,6 +40,7 @@ void smartconfig_task(void * parm)
 
 void sc_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
+    /* Check what events happen and act accordingly */
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) {
         xTaskCreate(smartconfig_task, "smartconfig_task", 4096, NULL, 3, NULL);
     } else if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
@@ -74,6 +85,7 @@ void sc_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, 
             printf("\n");
         }
 
+        /* Disconnect, assign config and reconnect */
         ESP_ERROR_CHECK( esp_wifi_disconnect() );
         ESP_ERROR_CHECK( esp_wifi_set_config(WIFI_IF_STA, &wifi_config) );
         esp_wifi_connect();
@@ -82,7 +94,6 @@ void sc_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, 
     }
 }
 
-// used to set the CONNECTED or FAIL bits
 void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data)
 {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_START) 
@@ -109,9 +120,10 @@ void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id
     }
 }
 
-esp_err_t wifi_init_sc(void){
+esp_err_t wifi_init_sc()
+{
     ESP_LOGI(TAG, "Initialising WiFi SC. Open ESPTouch...");
-    esp_err_t ret;
+    
     s_wifi_event_group = xEventGroupCreate();
 
     ESP_ERROR_CHECK(esp_netif_init());
@@ -131,7 +143,7 @@ esp_err_t wifi_init_sc(void){
     return ESP_OK;
 }
 
-esp_err_t wifi_init(void)
+esp_err_t wifi_init()
 {
     esp_err_t ret;
     s_wifi_event_group = xEventGroupCreate();

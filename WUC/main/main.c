@@ -3,12 +3,14 @@
 #include "wuc_nvs.h"
 #include "wuc_config.h"
 
+/* Tag used for logging to terminal through the serial interface */
 static const char *TAG = "WULPSC - Wake Up Module";
 
+/* Default initialisation for the system configuration */
 wuc_config_t wuc_config = {
     .exit               = false,
-    .sleep_time_sec     = 30,
-    .active_time_sec    = 60,
+    .sleep_time_sec     = 86400,    /* 1 day default sleep time= 24 * 60 * 60 * 10^6 microseconds */
+    .active_time_sec    = 60,       /* 1 minute default active time */
     .ssid               = "",
     .pswd               = "",
     .stored_creds       = false,
@@ -26,7 +28,7 @@ void app_main(void)
     httpd_handle_t server;
 
 
-    /* Initialise the non volatile storage */
+    /* Initialise the Non Volatile Storage, required for WiFi */
     ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
@@ -49,7 +51,7 @@ void app_main(void)
 
     
     /**
-     *  If stored credentials are detected, initialise the WiFi with them,
+     * If stored credentials are detected, initialise the WiFi with them,
      * else start smart config to get the credentials
      * */
     if(wuc_config.stored_creds){
@@ -58,7 +60,7 @@ void app_main(void)
         wifi_ret = wifi_init_sc();
         
         /* Poll for smart config to finish */
-        while(strcmp(wuc_config.ssid, "") == 0 && strcmp(wuc_config.pswd, "") == 0){vTaskDelay(10/ portTICK_PERIOD_MS);}
+        while(strcmp(wuc_config.ssid, "") == 0 && strcmp(wuc_config.pswd, "") == 0){vTaskDelay(10/portTICK_PERIOD_MS);}
 
         /* Store the new credentials */
         store_creds_to_nvs();
@@ -79,6 +81,7 @@ void app_main(void)
             return;
         }
 
+        /* Main server while-loop, call /exit to enter deep sleep */
         ESP_LOGI(TAG, "Entering webserver");
         while(server){
             vTaskDelay(10/portTICK_PERIOD_MS);

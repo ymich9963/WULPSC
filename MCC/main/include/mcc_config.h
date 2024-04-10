@@ -1,5 +1,4 @@
-#ifndef CONFIG_H
-#define CONFIG_H
+#pragma once
 
 #include "esp_camera.h"
 #include "esp_err.h"
@@ -8,8 +7,12 @@
 #include "sd.h"
 #include "camera.h"
 
-// Pin to change MUX
+/* Pin to change MUX */
 #define SEL_PIN  4
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /* States used for checking the SD configuration */
 typedef enum{
@@ -29,8 +32,6 @@ typedef struct{
     camera_status_t camera;
 }mcc_config_t;
 
-
-
 /**
  * @brief Takes all camera variables in the system config and sets them
  * 
@@ -39,7 +40,7 @@ typedef struct{
 esp_err_t camera_set_settings();
 
 /**
- * @brief Used for debugging the camera sensor settings
+ * @brief Used for debugging the camera sensor settings. Prints the logs to the terminal
  * 
 */
 void camera_get_settings();
@@ -53,17 +54,6 @@ void camera_get_settings();
 */
 esp_err_t JSON_config_set(char* content);
 
-
-/**
- * @brief Checks SD configuration and saves the image if appropriate
- * 
- * @param fb camera frame buffer
- * 
- * @return ESP_OK
-*/
-esp_err_t sys_sd_save_check(camera_fb_t* fb);
-
-
 /**
  * @brief Take a picture. Used to check if picture should be taken with flash or not
  * 
@@ -71,10 +61,18 @@ esp_err_t sys_sd_save_check(camera_fb_t* fb);
 */
 camera_fb_t* sys_take_picture();
 
-
+/**
+ * @brief Setup the system to allow efficient saving time of the frame buffers. 
+ * Creates the variables for the file names by creating random string of six caracters, one being the null terminator.
+ * 
+ * @return ESP_OK on success
+*/
 esp_err_t sys_sd_var_setup();
 
-
+/**
+ * @brief Save the frame buffers to the SD card based on the file names defined by the sys_sd_var_setup() function.
+ * 
+*/
 esp_err_t sys_sd_save(camera_fb_t* fb);
 
 /**
@@ -84,4 +82,6 @@ esp_err_t sys_sd_save(camera_fb_t* fb);
 */
 esp_err_t sys_camera_switch();
 
+#ifdef __cplusplus
+}
 #endif

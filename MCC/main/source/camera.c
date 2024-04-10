@@ -1,11 +1,12 @@
-// file contains all camera related function definitions and default camera configuration
-
 #include "camera.h"
 
+/* Log tag for camera source code */
 static const char *TAG = "WULPSC - Camera";
+
+/* System config defined in main*/
 extern mcc_config_t mcc_config;
 
-// declare the camera configuration
+/* Declare the camera configuration */
 camera_config_t camera_config = {
     .pin_pwdn       = CAM_PIN_PWDN,
     .pin_reset      = CAM_PIN_RESET,
@@ -26,21 +27,23 @@ camera_config_t camera_config = {
     .pin_href   = CAM_PIN_HREF,
     .pin_pclk   = CAM_PIN_PCLK,
 
+    /* Typically used 20 MHz, reduced to 10 MHz to improve synchonisation*/
     .xclk_freq_hz   = 10000000,
     .ledc_timer     = LEDC_TIMER_0,
     .ledc_channel   = LEDC_CHANNEL_0,
 
-    .pixel_format   = PIXFORMAT_YUV422, //YUV422,GRAYSCALE,RGB565,JPEG
-    .frame_size     = FRAMESIZE_VGA,    //QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. The performance of the ESP32-S series has improved a lot, but JPEG mode always gives better frame rates.
+    .pixel_format   = PIXFORMAT_YUV422, /* YUV422,GRAYSCALE,RGB565,JPEG */
+    .frame_size     = FRAMESIZE_VGA,    /* QQVGA-UXGA, For ESP32, do not use sizes above QVGA when not JPEG. */
 
-    .jpeg_quality   = 4,        //0-63, for OV series camera sensors, lower number means higher quality
-    .fb_count       = 1,        //When jpeg mode is used, if fb_count more than one, the driver will work in continuous mode.
+    .jpeg_quality   = 4,                /* 0-63, for OV series camera sensors, lower number means higher quality */
+    .fb_count       = 1,                /* When jpeg mode is used, if fb_count more than one, the driver will work in continuous mode. */
     .grab_mode      = CAMERA_GRAB_WHEN_EMPTY,
     .fb_location    = CAMERA_FB_IN_PSRAM,
 };
 
-esp_err_t init_camera(){
-    //initialize the camera
+esp_err_t init_camera()
+{
+    /* Initialise camera */
     esp_err_t err = esp_camera_init(&camera_config);
     if (err != ESP_OK)
     {
@@ -50,24 +53,30 @@ esp_err_t init_camera(){
     return ESP_OK;
 }
 
-void change_pixformat_to_jpeg(){
+esp_err_t change_pixformat_to_jpeg()
+{
     camera_config.pixel_format = PIXFORMAT_JPEG;
+    return ESP_OK;
 }
 
-esp_err_t setup_flash(){
+esp_err_t setup_flash()
+{
     ESP_ERROR_CHECK(gpio_set_level(CAM_PIN_FLASH,0)); //initialise to 0 so to not blink twice
     return gpio_set_direction(CAM_PIN_FLASH,GPIO_MODE_OUTPUT);
 }
 
-esp_err_t turn_on_flash(){
+esp_err_t turn_on_flash()
+{
     return gpio_set_level(CAM_PIN_FLASH,1);
 }
 
-esp_err_t turn_off_flash(){
+esp_err_t turn_off_flash()
+{
     return gpio_set_level(CAM_PIN_FLASH,0);
 }
 
-void pic_data_output(camera_fb_t *fb){
+void pic_data_output(camera_fb_t *fb)
+{
     ESP_LOGI(TAG, "-----------------------");
     ESP_LOGI(TAG, "Size: %zu bytes", fb->len);
     ESP_LOGI(TAG, "Height: %zu", fb->height);
@@ -77,10 +86,8 @@ void pic_data_output(camera_fb_t *fb){
     ESP_LOGI(TAG, "-----------------------"); 
 }
 
-
-
-
-camera_fb_t* fb_refresh(camera_fb_t * fb){
+camera_fb_t* fb_refresh(camera_fb_t * fb)
+{
     for(int i = 0; i < REFRESH_NUM; i++){
         fb = esp_camera_fb_get();
         esp_camera_fb_return(fb);

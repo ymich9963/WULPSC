@@ -1,29 +1,33 @@
 #pragma once
 
-#include "stdbool.h"
+#include <stdbool.h>
 #include <stdio.h>
 #include <time.h>
 #include <sys/time.h>
-#include "soc/soc_caps.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "soc/soc_caps.h"
 #include "esp_sleep.h"
 #include "esp_log.h"
 #include "driver/rtc_io.h"
 #include "esp_timer.h"
 #include "wuc_config.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* GPIO pin the MCC is connected to */
 #define MCC_PIN         GPIO_NUM_2
 
-/* WUC System Configuration structure*/
+/* WUC System Configuration structure. */
 typedef struct{
-    bool exit;
-    uint32_t sleep_time_sec;
-    int active_time_sec;
-    char ssid[33];
-    char pswd[65];
-    bool stored_creds;
+    bool exit;                  // to check to exit the main server loop and enter deep sleep
+    uint32_t sleep_time_sec;    // to store how long the system will sleep
+    uint32_t active_time_sec;   // to store the default active time
+    char ssid[33];              // to store the WiFi SSID
+    char pswd[65];              // to store the WiFi Password
+    bool stored_creds;          // to check if credentials are stored in the NVS
 }wuc_config_t;
 
 /**
@@ -53,3 +57,7 @@ esp_err_t mcc_powerup();
  * @return ESP_OK on success
 */
 esp_err_t mcc_powerdown();
+
+#ifdef __cplusplus
+}
+#endif

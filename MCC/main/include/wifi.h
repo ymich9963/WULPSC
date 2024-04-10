@@ -1,5 +1,4 @@
-#ifndef WIFI_H
-#define WIFI_H
+#pragma once
 
 #include <string.h>
 #include "freertos/FreeRTOS.h"
@@ -20,20 +19,22 @@
 #define WIFI_CONNECTED_BIT BIT0
 #define WIFI_FAIL_BIT      BIT1
 
+#ifdef __cpluplus
+extern "C" {
+#endif
 
 /**
- * @brief General required calls to initialise WiFi functionality
+ * @brief General required calls to initialise WiFi functionality for an ESP32.
 */
 void wifi_init_general();
 
-
 /**
- * @brief Print the WiFi Authorisation Mode
-*/
-void print_auth_mode(int authmode);
-
-/**
- * @brief Used to set the CONNECTED or FAIL bits for the event
+ * @brief Used to set the CONNECTED or FAIL bits for the event.
+ * 
+ * @param arg General arguement pointer
+ * @param event_base Event type
+ * @param event_id Event ID
+ * @param event_data Data received from the event.
 */
 void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 
@@ -44,5 +45,6 @@ void event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, voi
 */
 esp_err_t wifi_init_sta(void);
 
-
+#ifdef __cplusplus
+}
 #endif
