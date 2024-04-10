@@ -52,7 +52,7 @@ httpd_handle_t start_webserver(void);
 */
 void stop_webserver(httpd_handle_t server);
 
-/*
+/* Example cURL command
 
 curl -ContentType 'text/plain' -Body "SLEEP_TIME_SECONDS" -Method Post http://IP_ADDRESS_HERE:19520/sleep  
 
