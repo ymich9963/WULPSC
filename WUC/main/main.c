@@ -82,7 +82,7 @@ void app_main(void)
             return;
         }
 
-        /* Main server while-loop, call /exit to enter deep sleep */
+        /* Main server while-loop, call /exit to enter deep sleep or /reset to reset the WiFi credentials */
         ESP_LOGI(TAG, "Entering webserver");
         while (server) {
             vTaskDelay(10/portTICK_PERIOD_MS);

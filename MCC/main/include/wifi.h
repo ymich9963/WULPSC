@@ -11,8 +11,8 @@
 
 #define SD_CRED    1
     #if !SD_CRED
-        #define ESP_WIFI_SSID      "Gavrilis"
-        #define ESP_WIFI_PASS      "123456789"
+        #define ESP_WIFI_SSID      "EE-5PRW29"
+        #define ESP_WIFI_PASS      "uMLrF4KWmQvD6G4n"
     #endif
 
 #define ESP_MAXIMUM_RETRY  3

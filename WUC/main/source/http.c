@@ -29,6 +29,7 @@ esp_err_t exit_handler(httpd_req_t *req)
 
 esp_err_t reset_handler(httpd_req_t *req)
 {
+    /* Set reset to true to reset the system from the main loop */
     wuc_config.reset = true;
 
     /* Send response to signify it has been executed */
