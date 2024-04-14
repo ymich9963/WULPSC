@@ -20,13 +20,22 @@ extern "C" {
 esp_err_t get_handler(httpd_req_t *req);
 
 /**
- * @brief GET handler to notify WUC to should down
+ * @brief GET handler to notify WUC to shut down
  * 
  * @param req HTTP Request
  * 
  * @return ESP_OK on success
 */
 esp_err_t exit_handler(httpd_req_t *req);
+
+/**
+ * @brief GET handler to notify WUC to reset the NVS to accept new credentials
+ * 
+ * @param req HTTP Request
+ * 
+ * @return ESP_OK on success
+*/
+esp_err_t reset_handler(httpd_req_t *req);
 
 /**
  * @brief POST handler to receive the specified sleep time

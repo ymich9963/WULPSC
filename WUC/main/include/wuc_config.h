@@ -23,6 +23,7 @@ extern "C" {
 /* WUC System Configuration structure. */
 typedef struct{
     bool exit;                  // to check to exit the main server loop and enter deep sleep
+    bool reset;                 // to reset the system to accept new WiFi credentials
     uint32_t sleep_time_sec;    // to store how long the system will sleep
     uint32_t active_time_sec;   // to store the default active time
     char ssid[33];              // to store the WiFi SSID

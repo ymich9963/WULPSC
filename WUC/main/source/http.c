@@ -27,6 +27,17 @@ esp_err_t exit_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+esp_err_t reset_handler(httpd_req_t *req)
+{
+    wuc_config.reset = true;
+
+    /* Send response to signify it has been executed */
+    const char resp[] = "Erased flash and restarted system.";
+    httpd_resp_send(req, resp, HTTPD_RESP_USE_STRLEN);
+    return ESP_OK;
+}
+
+
 esp_err_t set_sleep_time_handler(httpd_req_t *req)
 {
 
@@ -75,7 +86,7 @@ esp_err_t set_sleep_time_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-/* URI handlers */
+/* GET handlers */
 httpd_uri_t uri_get = {
     .uri      = "/uri",
     .method   = HTTP_GET,
@@ -87,6 +98,13 @@ httpd_uri_t exit_get = {
     .uri      = "/exit",
     .method   = HTTP_GET,
     .handler  = exit_handler,
+    .user_ctx = NULL
+};
+
+httpd_uri_t reset_get = {
+    .uri      = "/reset",
+    .method   = HTTP_GET,
+    .handler  = reset_handler,
     .user_ctx = NULL
 };
 
@@ -113,6 +131,7 @@ httpd_handle_t start_webserver(void){
         /* Register URI handlers */
         httpd_register_uri_handler(server, &uri_get);
         httpd_register_uri_handler(server, &exit_get);
+        httpd_register_uri_handler(server, &reset_get);
 
         /* Register POST handlers */
         httpd_register_uri_handler(server, &set_sleep_time_post);

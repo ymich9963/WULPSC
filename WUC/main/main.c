@@ -9,6 +9,7 @@ static const char *TAG = "WULPSC - Wake Up Module";
 /* Default initialisation for the system configuration */
 wuc_config_t wuc_config = {
     .exit               = false,
+    .reset              = false,
     .sleep_time_sec     = 86400,    /* 1 day default sleep time= 24 * 60 * 60 * 10^6 microseconds */
     .active_time_sec    = 60,       /* 1 minute default active time */
     .ssid               = "",
@@ -70,25 +71,29 @@ void app_main(void)
     setup_mcc_power_switch();
 
     /* If WiFi initialisation and connection was succesful */
-    if(wifi_ret == ESP_OK){ 
+    if (wifi_ret == ESP_OK) { 
         /* Power-up MCC */
         mcc_powerup();
         
         /* Start the HTTP server */
         server = start_webserver();
-        if(server == NULL){
+        if (server == NULL) {
             ESP_LOGE(TAG,"Error Server is NULL");
             return;
         }
 
         /* Main server while-loop, call /exit to enter deep sleep */
         ESP_LOGI(TAG, "Entering webserver");
-        while(server){
+        while (server) {
             vTaskDelay(10/portTICK_PERIOD_MS);
-            if(wuc_config.exit){
+            if (wuc_config.exit) {
                 ESP_LOGI(TAG, "Server Stopping");
                 stop_webserver(server);
                 server = NULL;
+            }
+            if (wuc_config.reset) {
+                nvs_flash_erase();
+                esp_restart();
             }
         }
     } else {
