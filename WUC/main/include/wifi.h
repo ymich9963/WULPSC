@@ -43,6 +43,11 @@ void sc_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, 
 void smartconfig_task(void * parm);
 
 /**
+ * @brief Event handler for the WiFi initialisation with only using the stored credentials. Parameters are the required event handler parameters.
+*/
+void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
+
+/**
  * @brief Initialise WiFi with the stored credentials. Only uses the credentials stored in the NVS. For the credentials to change
  * the flash must be erased.
  * 
