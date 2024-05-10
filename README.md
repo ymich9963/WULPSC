@@ -8,6 +8,8 @@
 ## Description
 Code for the 19520 MEng Group Project at the University of Strathclyde created by Group I (Aneel Amjad, Raheel Amjad, Andreas Gavrielidies, Kostantinos Gkogkalatze, and Yiannis Michael). This repo contains all of the microcontroller code for the project. Responsibility for the microcontroller code was taken on by myself (Yiannis Michael) with some help facilitating communication to the server backend by Aneel Amjad and Raheel Amjad. Two microcontrollers were used, an ESP32-CAM for the MCC, and a FireBeetle 2 ESP32-E for the WUC.
 
+Links for the frontend and backend can be viewed [here](https://github.com/sawtoise/wulpsc-frontend) and [here](https://github.com/DDQuin/stereo-camera-backend) respectively. The technical report for the project is also provided in this repository, which provides the methodology and rationale for this project.
+
 ## Setup Environment
 To develop for this project there some steps to setup the environment for building and flashing. VS Code is the chosen IDE and each folder in the main branch (i.e. ``MCC`` or ``WUC``) should be opened in VS Code as a folder. This can be done by opening a terminal, navigating to the cloned directory and typing the command ``code .``, or by opening VS Code and going to ``File > Open Folder``.  The reason for this is that each folder is setup as an individual ESP-IDF project. To setup ESP-IDF and the IDE, please follow the steps below,
 
